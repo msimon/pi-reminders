@@ -43,10 +43,19 @@ These are the load-bearing decisions. Breaking one silently breaks the product.
 4. **Fire-once via `firedAt`.** Without it the 60s tick re-notifies every minute.
    `firedAt` is also the cross-window claim: exactly one window sends the desktop
    banner, the rest skip it on their next tick.
-5. **No date library, no LLM call inside the extension.** Two input forms:
-   absolute (`YYYY-MM-DD` or `YYYY-MM-DD HH:MM`) and offsets (`^(\d+)([mhdw])$`).
+5. **No date library, no LLM call inside the extension.** Accepted input forms:
+   local absolute (`YYYY-MM-DD` or `YYYY-MM-DD HH:MM`), a zoned instant
+   (`2026-01-20T09:00:00Z` or `...+01:00`), and offsets (`^(\d+)([mhdw])$`).
    Anything else is rejected with the accepted formats. Natural language is the
    model's job — it resolves before calling the tool.
+
+   Zoned instants are accepted because the rule exists to keep out *ambiguous*
+   input, and an explicit offset is the opposite of ambiguous — it names an
+   exact instant, needs no guessing and adds no dependency. Rejecting it forced
+   the caller to do the timezone arithmetic, which a model gets wrong silently:
+   it hands back a valid-looking local time that is off by an hour, and nothing
+   downstream can detect it. The tool description also states the machine's
+   zone and offset so the model never has to infer them.
 6. **`allDay` is a flag, not a time convention.** All-day reminders have a
    different fire time and overdue time (09:00 vs 23:59 by default). Collapsing
    them to one timestamp breaks the overdue counter. The design doc explains why
@@ -82,7 +91,7 @@ These were established empirically during design. Trust them.
   (`core/extensions/types.d.ts:80`). It does render through the user's custom
   pi-footer.
 - Colour in the statusline comes from the **glyph, not ANSI**. `⚠️` is `U+26A0`
-  + `U+FE0F`; the variation selector selects emoji presentation and renders
+  followed by `U+FE0F`; the variation selector selects emoji presentation and renders
   yellow. Bare `U+26A0` renders monochrome grey. Confirmed on the user's setup.
 - `ctx.ui.setWidget(key, string[] | undefined, { placement })` — placement is
   fixed at creation. Switching placement requires clear-then-set.
