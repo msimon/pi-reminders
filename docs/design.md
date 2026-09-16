@@ -393,18 +393,29 @@ never makes an LLM call — it is a pure state machine over absolute times.
 
 ### Relative dates and snooze durations
 
-Two accepted forms, used by both `add` and `snooze`:
+Three accepted forms, used by both `add` and `snooze`:
 
-**Absolute** — `2026-01-20 09:00` or `2026-01-20`. The presence of a time sets
-`allDay`.
+**Local absolute** — `2026-01-20 09:00` or `2026-01-20`. The presence of a time
+sets `allDay`. Read as the user's local wall-clock time.
+
+**Zoned instant** — `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`.
+Always timed, and stored as exactly that instant.
 
 **Relative offset** — `<N><m|h|d|w>`: `45m`, `3h`, `2d`, `1w`. A single regex,
 `^(\d+)([mhdw])$`. Always timed. This covers the common case for both commands —
 `/remind 2h take a break` is far nicer than typing a timestamp.
 
-Anything else is **rejected with the two accepted formats**, never guessed at. No
+Anything else is **rejected with the accepted formats**, never guessed at. No
 date library: `chrono-node` would be 2.76 MB for ambiguity we do not want
 ("next week" — next Monday, or seven days out?). Rejecting is honest and cheap.
+
+The zoned form is accepted precisely because it is *not* ambiguous: it names an
+exact instant, so there is nothing to guess and no dependency needed. Rejecting
+it was worse than accepting it, because it pushed the timezone conversion onto
+the model — and a model that gets that wrong returns a syntactically valid local
+time that is silently off by an hour, which nothing downstream can detect. The
+tool description also reports the machine's zone and current offset, so the
+model never has to infer them when resolving "tomorrow morning".
 
 Whatever is typed, the resolved absolute timestamp is echoed back on success.
 
@@ -450,11 +461,13 @@ Reads are allowed for the agent too, so "what's on my plate" works.
   Reminders extension — publishing needs a different name (`pi-remind`, or scoped
   `@msimon/pi-reminders`).
 - **All-day fire hour is configurable**, see Configuration.
-- **No date library and no LLM call inside the extension.** Two input forms only:
-  absolute timestamps and `<N><m|h|d|w>` offsets. Anything else is rejected with
-  the accepted formats. Natural language goes through the agent, which resolves it
-  to an absolute timestamp before calling the tool — so the state machine has zero
-  dependencies and no network round-trip.
+- **No date library and no LLM call inside the extension.** Three input forms:
+  local absolute timestamps, zoned instants (`...Z` / `...+01:00`), and
+  `<N><m|h|d|w>` offsets. Anything else is rejected with the accepted formats.
+  Natural language goes through the agent, which resolves it before calling the
+  tool — so the state machine has zero dependencies and no network round-trip.
+  Zoned instants are accepted because they are unambiguous; rejecting them made
+  the model do timezone maths it gets wrong silently.
 - **Widget is one line, overdue only.** The multi-line box was rejected after
   seeing it live. A single line below the editor, hidden unless something is
   actually late.

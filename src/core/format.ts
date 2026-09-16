@@ -2,7 +2,7 @@
 // `Jan 15` for all-day, `Jan 15 14:00` for timed.
 
 import { effectiveAt, fireAt, overdueAt } from "./derive.ts";
-import { calendarDayDiff } from "./time.ts";
+import { calendarDayDiff, formatLocalDateTime } from "./time.ts";
 import type { Reminder, RemindersConfig } from "./types.ts";
 
 const MONTHS = [
@@ -37,7 +37,7 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 /** Coarse "how late" / "how soon" label, e.g. `2d overdue`, `in 3h`, `now`. */
-export function formatRelative(target: number, now: number): string {
+function formatRelative(target: number, now: number): string {
   const deltaMs = target - now;
   const absMs = Math.abs(deltaMs);
   if (absMs < MINUTE_MS) return "now";
@@ -52,6 +52,30 @@ export function formatRelative(target: number, now: number): string {
   }
 
   return deltaMs < 0 ? `${magnitude} overdue` : `in ${magnitude}`;
+}
+
+/**
+ * Describe the machine's local zone and clock.
+ *
+ * Handed to the model in the tool description so it never has to guess the
+ * offset when resolving "tomorrow morning" or converting a UTC instant. The
+ * offset is sampled once, when the tool is registered, so it is labelled as
+ * such: a session that runs across a DST boundary will show the pre-change
+ * offset until the next start.
+ */
+export function describeLocalZone(now: number): string {
+  const at = new Date(now);
+  const offsetMinutes = -at.getTimezoneOffset();
+  const sign = offsetMinutes < 0 ? "-" : "+";
+  const absolute = Math.abs(offsetMinutes);
+  const offset = `${sign}${PAD(Math.floor(absolute / 60))}:${PAD(absolute % 60)}`;
+  let zoneName: string;
+  try {
+    zoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    zoneName = "unknown";
+  }
+  return `${zoneName} (UTC${offset}), local time ${formatLocalDateTime(at)}, as of session start`;
 }
 
 /** Truncate on a whole character boundary so a widget line cannot wrap. */

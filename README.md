@@ -47,10 +47,14 @@ usually enough.
 
 ### Date formats
 
-Two accepted forms, and anything else is rejected with these listed:
+Three accepted forms, and anything else is rejected with these listed:
 
-- **Absolute** — `2026-01-20` (all-day) or `2026-01-20 09:00` (timed). The
+- **Local absolute** — `2026-01-20` (all-day) or `2026-01-20 09:00` (timed). The
   presence of a time component is what sets all-day; there is no flag to pass.
+  Read as your local wall-clock time.
+- **Zoned instant** — `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`.
+  Stored as exactly that instant, always timed. Mostly useful to the agent,
+  which can pass a UTC timestamp straight through instead of converting it.
 - **Relative offset** — `<N><m|h|d|w>`: `45m`, `3h`, `2d`, `1w`. Always timed.
 
 There is deliberately no date library. `chrono-node` would be 2.76 MB for

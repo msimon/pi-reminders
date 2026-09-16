@@ -12,12 +12,24 @@ import { RECURRENCE_UNITS, type Recurrence } from "./types.ts";
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export const ACCEPTED_WHEN_FORMATS =
-  "absolute `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (timed), or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";
+  "absolute `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (local, timed), a zoned instant such as `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`, or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";
 
-export const ACCEPTED_DURATION_FORMATS = "an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";
+const ACCEPTED_DURATION_FORMATS =
+  "an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/;
+/**
+ * A timestamp carrying its own zone.
+ *
+ * Accepted because it is the *opposite* of ambiguous: it names an exact
+ * instant, so there is nothing to guess and no date library needed. Rejecting
+ * it would push the timezone arithmetic onto the caller, and a caller that gets
+ * that wrong hands back a syntactically valid local time that is silently off
+ * by an hour — there is no way to detect it downstream.
+ */
+const ZONED_DATE_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})$/i;
 /** The single relative-offset regex, used by both `add` and `snooze`. */
 const OFFSET = /^(\d+)([mhdw])$/;
 
@@ -106,6 +118,38 @@ export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
     return { ok: true, value: { dueAt: new Date(at).toISOString(), allDay: false } };
   }
 
+  const zoned = ZONED_DATE_TIME.exec(raw);
+  if (zoned !== null) {
+    const year = Number.parseInt(zoned[1] as string, 10);
+    const month1 = Number.parseInt(zoned[2] as string, 10);
+    const day = Number.parseInt(zoned[3] as string, 10);
+    const hour = Number.parseInt(zoned[4] as string, 10);
+    const minute = Number.parseInt(zoned[5] as string, 10);
+    const second = zoned[6] === undefined ? 0 : Number.parseInt(zoned[6], 10);
+    if (!isRealCalendarDate(year, month1, day)) {
+      return { ok: false, error: `"${raw}" is not a real calendar date.` };
+    }
+    if (hour > 23 || minute > 59 || second > 59) {
+      return { ok: false, error: `"${raw}" is not a real time of day.` };
+    }
+
+    // Normalize to what Date.parse is actually specified to accept: a `T`
+    // separator and a `±HH:MM` offset. `+0100` and a space separator are
+    // engine-dependent, so they are rewritten rather than trusted.
+    const zone = (zoned[7] as string).toUpperCase();
+    const normalizedZone =
+      zone === "Z" || zone.includes(":")
+        ? zone
+        : `${zone.slice(0, 3)}:${zone.slice(3)}`;
+    const at = Date.parse(
+      `${zoned[1]}-${zoned[2]}-${zoned[3]}T${zoned[4]}:${zoned[5]}:${String(second).padStart(2, "0")}${normalizedZone}`,
+    );
+    if (Number.isNaN(at)) {
+      return { ok: false, error: `Could not read the timezone in "${raw}".` };
+    }
+    // An explicit zone names an exact instant, so it is always timed.
+    return { ok: true, value: { dueAt: new Date(at).toISOString(), allDay: false } };
+  }
   const offset = parseDuration(raw);
   if (offset.ok) {
     // Relative offsets are always timed.

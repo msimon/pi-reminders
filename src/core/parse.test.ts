@@ -122,10 +122,65 @@ describe("parseWhen", () => {
     }
   });
 
-  it("rejects a timestamp carrying its own zone, which would not be local", () => {
-    // The tool contract is local-or-offset; a Z-suffixed instant is a different
-    // thing and is better rejected than silently reinterpreted.
-    assert.equal(parseWhen("2026-01-20T09:30:00Z", NOW).ok, false);
+  it("accepts a Z-suffixed instant as the exact instant", () => {
+    // A zoned timestamp is unambiguous, so it is honoured rather than rejected.
+    // Accepting it removes the need for the caller to do timezone arithmetic,
+    // which is where an off-by-an-hour error would otherwise creep in silently.
+    const result = parseWhen("2026-01-20T09:30:00Z", NOW);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.value.allDay, false);
+    assert.equal(result.value.dueAt, "2026-01-20T09:30:00.000Z");
+  });
+
+  it("honours an explicit UTC offset", () => {
+    // 09:30+01:00 is 08:30Z, regardless of the machine's own zone.
+    const result = parseWhen("2026-01-20T09:30:00+01:00", NOW);
+    assert.equal(result.ok, true);
+    assert.equal(result.ok && result.value.dueAt, "2026-01-20T08:30:00.000Z");
+  });
+
+  it("accepts an offset without a colon and a negative offset", () => {
+    // `+0100` is valid ISO 8601 but not guaranteed by Date.parse, so it is
+    // normalized before parsing.
+    const cases: [string, string][] = [
+      ["2026-01-20T09:30:00+0100", "2026-01-20T08:30:00.000Z"],
+      ["2026-01-20T09:30:00-05:00", "2026-01-20T14:30:00.000Z"],
+    ];
+    for (const [input, expected] of cases) {
+      const result = parseWhen(input, NOW);
+      assert.equal(result.ok, true, input);
+      if (!result.ok) continue;
+      assert.equal(result.value.dueAt, expected, input);
+    }
+  });
+
+  it("accepts a zoned instant with fractional seconds and no seconds", () => {
+    assert.equal(parseWhen("2026-01-20T09:30:00.123Z", NOW).ok, true);
+    assert.equal(parseWhen("2026-01-20T09:30Z", NOW).ok, true);
+  });
+
+  it("keeps a zoned instant distinct from the same wall-clock local time", () => {
+    // In July, Europe/London is BST (+01:00), so 09:30Z is 10:30 local. The two
+    // forms must not collapse onto the same instant.
+    const zonedResult = parseWhen("2026-07-20T09:30:00Z", NOW);
+    const localResult = parseWhen("2026-07-20 09:30", NOW);
+    assert.equal(zonedResult.ok && localResult.ok, true);
+    if (!zonedResult.ok || !localResult.ok) return;
+    assert.notEqual(zonedResult.value.dueAt, localResult.value.dueAt);
+    assert.equal(zonedResult.value.dueAt, "2026-07-20T09:30:00.000Z");
+    assert.equal(localResult.value.dueAt, "2026-07-20T08:30:00.000Z");
+  });
+
+  it("still rejects a malformed zone", () => {
+    for (const input of ["2026-01-20T09:30:00+25:00", "2026-01-20T09:30:00QQ"]) {
+      assert.equal(parseWhen(input, NOW).ok, false, input);
+    }
+  });
+
+  it("never treats a zoned instant as all-day", () => {
+    const result = parseWhen("2026-01-20T00:00:00Z", NOW);
+    assert.equal(result.ok && result.value.allDay, false);
   });
 });
 

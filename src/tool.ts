@@ -14,7 +14,11 @@ import {
   type AgentToolResult,
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
-import { formatDue, formatReminderLine } from "./core/format.ts";
+import {
+  describeLocalZone,
+  formatDue,
+  formatReminderLine,
+} from "./core/format.ts";
 import {
   ACCEPTED_WHEN_FORMATS,
   parseSnoozeTarget,
@@ -51,9 +55,11 @@ const PARAMS = Type.Object({
   when: Type.Optional(
     Type.String({
       description:
-        "For add: the absolute local date `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (timed), or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`. " +
-        'Resolve any natural language ("next Tuesday", "tomorrow morning") to an absolute local date yourself before calling. ' +
-        "Do NOT pass a UTC-suffixed or offset-suffixed timestamp such as `2026-01-20T09:00:00Z` — it will be rejected. " +
+        "For add, one of: a local date `YYYY-MM-DD` (all-day), a local timestamp `YYYY-MM-DD HH:MM` (timed), " +
+        "a zoned instant such as `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`, or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`. " +
+        'Resolve natural language ("next Tuesday", "tomorrow morning") to one of those forms before calling. ' +
+        "A form without a zone is read as the user's LOCAL wall-clock time; a zoned form is read as that exact instant. " +
+        "Prefer passing a zoned instant when you already have one \u2014 do not convert it to local time yourself. " +
         "Passing a date with no time makes it an all-day reminder, which fires in the morning and only counts as overdue the next day.",
     }),
   ),
@@ -138,7 +144,8 @@ export function registerTool(
         "Manage the user's personal reminders: add, list, clear, snooze, delete. " +
         "A reminder is stateful and nags until acknowledged, unlike a scheduled task. " +
         "Use this when the user asks to be reminded of something, or asks what they have coming up. " +
-        "Resolve natural-language dates to an absolute local date before calling.",
+        "Resolve natural-language dates before calling. " +
+        `The user's machine is in ${describeLocalZone(Date.now())}, so use that when interpreting "tomorrow", "this evening" and similar.`,
       promptSnippet:
         "reminder: add/list/clear/snooze/delete the user's personal reminders",
       parameters: PARAMS,
