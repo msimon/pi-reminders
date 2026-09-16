@@ -179,8 +179,9 @@ zeros:
 
 Omitting zeros is most of the clarity win: `0/1/1` never appears, so there is no
 ambiguity about whether the last number includes the middle one. Buckets stay
-disjoint — `this week` means days 2-7 and excludes what is already counted in
-`today`.
+disjoint — `today` runs to local midnight tonight rather than being a rolling
+24h window, and `this week` means days 2-7 and excludes what is already counted
+in `today`.
 
 No icon in the normal case. The icon appears only when something is late, so its
 presence is itself the signal rather than decoration you learn to skim past.

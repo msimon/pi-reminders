@@ -65,7 +65,9 @@ Build in this order. Each step should be working and committed before the next.
    is unit-testable with `node --test` standalone. This is the step where
    correctness matters most; spend the effort here.
 2. **Tick and state machine** — 60s interval, fire detection, `firedAt` claim,
-   snooze expiry, bucket computation (overdue / next 24h / days 2-7, disjoint).
+   snooze expiry, bucket computation (overdue / today / days 2-7, disjoint).
+   `today` runs to local midnight tonight — not a rolling 24h window, so
+   something due at 23:30 tonight is `today` and 00:30 tomorrow is not.
 3. **Surfaces** — statusline first, then the overdue-only widget line, then the
    TUI toast, then `cmux notify`, then the transcript line.
 4. **Commands** — `/remind`, `/reminders` and its subcommands, interactive picker.
