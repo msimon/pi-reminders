@@ -8,6 +8,7 @@
 // it, and every mutation acts on a record.
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { registerCommands } from "./commands.ts";
 import { RemindersRuntime } from "./runtime.ts";
 import { registerTranscriptRenderer } from "./surfaces/index.ts";
 
@@ -15,6 +16,7 @@ export default function reminders(pi: ExtensionAPI): void {
   const runtime = new RemindersRuntime(pi);
 
   registerTranscriptRenderer(pi);
+  registerCommands(pi, runtime);
 
   // Recompute on every session start: this is what surfaces a reminder that
   // came due while pi was closed, and what re-nags about anything past due.

@@ -15,7 +15,7 @@ import { computeBuckets } from "./core/derive.ts";
 import { formatDue } from "./core/format.ts";
 import { renderStartupReport } from "./core/render.ts";
 import { mutate, readState } from "./core/store.ts";
-import { applyTick, pastDue } from "./core/tick.ts";
+import { applyAdd, applyTick, pastDue, type AddInput } from "./core/tick.ts";
 import { DEFAULT_CONFIG, type Buckets, type Reminder, type RemindersConfig } from "./core/types.ts";
 import { GlanceSurfaces, TranscriptQueue } from "./surfaces/index.ts";
 import { sendBanner } from "./surfaces/notify.ts";
@@ -109,6 +109,16 @@ export class RemindersRuntime {
     }
   }
 
+  /**
+   * Add a reminder under CAS.
+   *
+   * Throws on retry exhaustion rather than reporting success: a silently
+   * dropped add is the one failure mode that destroys trust in the whole thing.
+   */
+  async add(input: AddInput): Promise<Reminder> {
+    const now = Date.now();
+    return mutate((reminders) => applyAdd(reminders, input, now));
+  }
   /** Current buckets without mutating anything. Used by the commands. */
   async snapshot(now = Date.now()): Promise<{ reminders: Reminder[]; buckets: Buckets }> {
     const loaded = await readState();
