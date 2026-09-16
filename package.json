@@ -1,6 +1,7 @@
 {
   "name": "@msimon/pi-reminders",
   "version": "0.0.0",
+  "type": "module",
   "description": "Personal date-based reminders for the Pi coding agent: statusline counts, overdue nagging at session start, and desktop notifications via cmux.",
   "author": "Marc Simon",
   "license": "MIT",
@@ -22,6 +23,7 @@
   ],
   "files": [
     "src/**/*",
+    "!src/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],
