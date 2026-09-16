@@ -18,7 +18,12 @@ import {
   nthOccurrence,
   overdueAt,
 } from "./derive.ts";
-import { DEFAULT_CONFIG, type Recurrence, type Reminder, type RemindersConfig } from "./types.ts";
+import {
+  DEFAULT_CONFIG,
+  type Recurrence,
+  type Reminder,
+  type RemindersConfig,
+} from "./types.ts";
 
 const CONFIG: RemindersConfig = { ...DEFAULT_CONFIG };
 
@@ -47,7 +52,12 @@ function reminder(overrides: Partial<Reminder> = {}): Reminder {
 }
 
 /** All-day records are stored anchored at local noon on the due date. */
-function allDay(year: number, month1: number, day: number, overrides: Partial<Reminder> = {}): Reminder {
+function allDay(
+  year: number,
+  month1: number,
+  day: number,
+  overrides: Partial<Reminder> = {},
+): Reminder {
   return reminder({
     allDay: true,
     dueAt: new Date(local(year, month1, day, 12, 0)).toISOString(),
@@ -57,7 +67,9 @@ function allDay(year: number, month1: number, day: number, overrides: Partial<Re
 
 describe("derived times", () => {
   it("fires a timed reminder at its exact instant", () => {
-    const r = reminder({ dueAt: new Date(local(2026, 1, 15, 14, 30)).toISOString() });
+    const r = reminder({
+      dueAt: new Date(local(2026, 1, 15, 14, 30)).toISOString(),
+    });
     assert.equal(fireAt(r, CONFIG), local(2026, 1, 15, 14, 30));
     assert.equal(overdueAt(r, CONFIG), local(2026, 1, 15, 14, 30));
   });
@@ -230,7 +242,10 @@ describe("recurrence", () => {
     const units: Recurrence[] = ["day", "week", "month", "year"];
     const now = local(2026, 6, 15, 12, 0);
     for (const unit of units) {
-      const r = reminder({ dueAt: new Date(local(2026, 1, 1, 9, 0)).toISOString(), recurrence: unit });
+      const r = reminder({
+        dueAt: new Date(local(2026, 1, 1, 9, 0)).toISOString(),
+        recurrence: unit,
+      });
       const rolled = clearReminder(r, now);
       assert.ok(Date.parse(rolled.dueAt) > now, `${unit} rolled past now`);
     }
@@ -242,29 +257,66 @@ describe("buckets", () => {
 
   it("keeps today and this week disjoint", () => {
     const reminders = [
-      reminder({ id: "od1", dueAt: new Date(local(2026, 1, 10, 9, 0)).toISOString() }),
-      reminder({ id: "od2", dueAt: new Date(local(2026, 1, 14, 9, 0)).toISOString() }),
-      reminder({ id: "tod", dueAt: new Date(local(2026, 1, 15, 18, 0)).toISOString() }),
-      reminder({ id: "wk1", dueAt: new Date(local(2026, 1, 16, 9, 0)).toISOString() }),
-      reminder({ id: "wk2", dueAt: new Date(local(2026, 1, 21, 9, 0)).toISOString() }),
-      reminder({ id: "far", dueAt: new Date(local(2026, 2, 1, 9, 0)).toISOString() }),
+      reminder({
+        id: "od1",
+        dueAt: new Date(local(2026, 1, 10, 9, 0)).toISOString(),
+      }),
+      reminder({
+        id: "od2",
+        dueAt: new Date(local(2026, 1, 14, 9, 0)).toISOString(),
+      }),
+      reminder({
+        id: "tod",
+        dueAt: new Date(local(2026, 1, 15, 18, 0)).toISOString(),
+      }),
+      reminder({
+        id: "wk1",
+        dueAt: new Date(local(2026, 1, 16, 9, 0)).toISOString(),
+      }),
+      reminder({
+        id: "wk2",
+        dueAt: new Date(local(2026, 1, 21, 9, 0)).toISOString(),
+      }),
+      reminder({
+        id: "far",
+        dueAt: new Date(local(2026, 2, 1, 9, 0)).toISOString(),
+      }),
     ];
 
     const buckets = computeBuckets(reminders, CONFIG, now);
-    assert.deepEqual(buckets.overdue.map((r) => r.id), ["od1", "od2"]);
-    assert.deepEqual(buckets.today.map((r) => r.id), ["tod"]);
-    assert.deepEqual(buckets.week.map((r) => r.id), ["wk1", "wk2"]);
-    assert.deepEqual(buckets.later.map((r) => r.id), ["far"]);
+    assert.deepEqual(
+      buckets.overdue.map((r) => r.id),
+      ["od1", "od2"],
+    );
+    assert.deepEqual(
+      buckets.today.map((r) => r.id),
+      ["tod"],
+    );
+    assert.deepEqual(
+      buckets.week.map((r) => r.id),
+      ["wk1", "wk2"],
+    );
+    assert.deepEqual(
+      buckets.later.map((r) => r.id),
+      ["far"],
+    );
 
     // Disjointness: every active record lands in exactly one bucket.
     const total =
-      buckets.overdue.length + buckets.today.length + buckets.week.length + buckets.later.length;
+      buckets.overdue.length +
+      buckets.today.length +
+      buckets.week.length +
+      buckets.later.length;
     assert.equal(total, reminders.length);
   });
 
   it("counts day 7 as this week and day 8 as later", () => {
-    const day7 = reminder({ dueAt: new Date(local(2026, 1, 21, 9, 0)).toISOString() });
-    const day8 = reminder({ dueAt: new Date(local(2026, 1, 22, 9, 0)).toISOString() });
+    const day7 = reminder({
+      dueAt: new Date(local(2026, 1, 21, 9, 0)).toISOString(),
+    });
+    const day8 = reminder({
+      dueAt: new Date(local(2026, 1, 22, 9, 0)).toISOString(),
+    });
     assert.equal(bucketOf(day7, CONFIG, now), "week");
     assert.equal(bucketOf(day8, CONFIG, now), "later");
   });
@@ -284,7 +336,10 @@ describe("buckets", () => {
 
   it("excludes cleared reminders entirely", () => {
     const reminders = [
-      reminder({ id: "act", dueAt: new Date(local(2026, 1, 10, 9, 0)).toISOString() }),
+      reminder({
+        id: "act",
+        dueAt: new Date(local(2026, 1, 10, 9, 0)).toISOString(),
+      }),
       reminder({
         id: "ack",
         dueAt: new Date(local(2026, 1, 10, 9, 0)).toISOString(),
@@ -292,6 +347,9 @@ describe("buckets", () => {
       }),
     ];
     const buckets = computeBuckets(reminders, CONFIG, now);
-    assert.deepEqual(buckets.overdue.map((r) => r.id), ["act"]);
+    assert.deepEqual(
+      buckets.overdue.map((r) => r.id),
+      ["act"],
+    );
   });
 });

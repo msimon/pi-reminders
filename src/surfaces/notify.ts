@@ -23,7 +23,10 @@ let cmuxAvailable: boolean | undefined;
 
 function osc777(banner: Banner): void {
   // \x1b]777;notify;<title>;<body>\x07
-  const title = banner.subtitle === undefined ? banner.title : `${banner.title} — ${banner.subtitle}`;
+  const title =
+    banner.subtitle === undefined
+      ? banner.title
+      : `${banner.title} — ${banner.subtitle}`;
   process.stdout.write(`\x1b]777;notify;${title};${banner.body}\x07`);
 }
 
@@ -31,7 +34,10 @@ function osc777(banner: Banner): void {
  * Send one desktop banner. Never throws: a failed notification must not take
  * down the tick that produced it.
  */
-export async function sendBanner(pi: ExtensionAPI, banner: Banner): Promise<void> {
+export async function sendBanner(
+  pi: ExtensionAPI,
+  banner: Banner,
+): Promise<void> {
   if (cmuxAvailable !== false) {
     const args = ["notify", "--title", banner.title, "--body", banner.body];
     if (banner.subtitle !== undefined) args.push("--subtitle", banner.subtitle);

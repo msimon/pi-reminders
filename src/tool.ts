@@ -15,7 +15,11 @@ import {
   type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import { formatDue, formatReminderLine } from "./core/format.ts";
-import { ACCEPTED_WHEN_FORMATS, parseSnoozeTarget, parseWhen } from "./core/parse.ts";
+import {
+  ACCEPTED_WHEN_FORMATS,
+  parseSnoozeTarget,
+  parseWhen,
+} from "./core/parse.ts";
 import { renderList } from "./core/render.ts";
 import { mutate } from "./core/store.ts";
 import {
@@ -40,25 +44,38 @@ const PARAMS = Type.Object({
     { description: "What to do." },
   ),
   message: Type.Optional(
-    Type.String({ description: "For add: what to remind the user about. Required for add." }),
+    Type.String({
+      description: "For add: what to remind the user about. Required for add.",
+    }),
   ),
   when: Type.Optional(
     Type.String({
       description:
         "For add: the absolute local date `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (timed), or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`. " +
-        "Resolve any natural language (\"next Tuesday\", \"tomorrow morning\") to an absolute local date yourself before calling. " +
+        'Resolve any natural language ("next Tuesday", "tomorrow morning") to an absolute local date yourself before calling. ' +
         "Do NOT pass a UTC-suffixed or offset-suffixed timestamp such as `2026-01-20T09:00:00Z` — it will be rejected. " +
         "Passing a date with no time makes it an all-day reminder, which fires in the morning and only counts as overdue the next day.",
     }),
   ),
   recurrence: Type.Optional(
-    Type.Union([Type.Literal("day"), Type.Literal("week"), Type.Literal("month"), Type.Literal("year")], {
-      description:
-        "For add: repeat every day/week/month/year. `when` is the first occurrence. Rolling forward is anchored to that date, not to when the user acknowledges it.",
-    }),
+    Type.Union(
+      [
+        Type.Literal("day"),
+        Type.Literal("week"),
+        Type.Literal("month"),
+        Type.Literal("year"),
+      ],
+      {
+        description:
+          "For add: repeat every day/week/month/year. `when` is the first occurrence. Rolling forward is anchored to that date, not to when the user acknowledges it.",
+      },
+    ),
   ),
   id: Type.Optional(
-    Type.String({ description: "For clear/snooze/delete: the short id from `list`. A unique prefix works." }),
+    Type.String({
+      description:
+        "For clear/snooze/delete: the short id from `list`. A unique prefix works.",
+    }),
   ),
   duration: Type.Optional(
     Type.String({
@@ -67,7 +84,10 @@ const PARAMS = Type.Object({
     }),
   ),
   includeCleared: Type.Optional(
-    Type.Boolean({ description: "For list: also show already-cleared reminders. Defaults to false." }),
+    Type.Boolean({
+      description:
+        "For list: also show already-cleared reminders. Defaults to false.",
+    }),
   ),
 });
 
@@ -95,13 +115,21 @@ function failure(body: string): never {
   throw new ReminderToolError(body);
 }
 
-function explainFailure(result: IdMutationResult, id: string): string | undefined {
-  if (result.status === "not-found") return `No active reminder matching "${id}".`;
-  if (result.status === "ambiguous") return `"${id}" matches more than one reminder — use more characters.`;
+function explainFailure(
+  result: IdMutationResult,
+  id: string,
+): string | undefined {
+  if (result.status === "not-found")
+    return `No active reminder matching "${id}".`;
+  if (result.status === "ambiguous")
+    return `"${id}" matches more than one reminder — use more characters.`;
   return undefined;
 }
 
-export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void {
+export function registerTool(
+  pi: ExtensionAPI,
+  runtime: RemindersRuntime,
+): void {
   pi.registerTool(
     defineTool({
       name: "reminder",
@@ -111,7 +139,8 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
         "A reminder is stateful and nags until acknowledged, unlike a scheduled task. " +
         "Use this when the user asks to be reminded of something, or asks what they have coming up. " +
         "Resolve natural-language dates to an absolute local date before calling.",
-      promptSnippet: "reminder: add/list/clear/snooze/delete the user's personal reminders",
+      promptSnippet:
+        "reminder: add/list/clear/snooze/delete the user's personal reminders",
       parameters: PARAMS,
 
       async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -120,11 +149,16 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
         try {
           switch (params.action) {
             case "add": {
-              if (params.message === undefined || params.message.trim() === "") {
+              if (
+                params.message === undefined ||
+                params.message.trim() === ""
+              ) {
                 return failure("`message` is required for action `add`.");
               }
               if (params.when === undefined) {
-                return failure(`\`when\` is required for action \`add\`. Expected ${ACCEPTED_WHEN_FORMATS}.`);
+                return failure(
+                  `\`when\` is required for action \`add\`. Expected ${ACCEPTED_WHEN_FORMATS}.`,
+                );
               }
 
               const when = parseWhen(params.when, now);
@@ -136,12 +170,16 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
                 allDay: when.value.allDay,
                 cwd: ctx.cwd,
               };
-              if (params.recurrence !== undefined) input.recurrence = params.recurrence;
+              if (params.recurrence !== undefined)
+                input.recurrence = params.recurrence;
 
               const added = await runtime.add(input);
               await runtime.refresh();
 
-              const every = added.recurrence === undefined ? "" : `, repeating every ${added.recurrence}`;
+              const every =
+                added.recurrence === undefined
+                  ? ""
+                  : `, repeating every ${added.recurrence}`;
               const kind = added.allDay ? "all-day" : "timed";
               // Echo the resolved absolute time back so the model can confirm
               // it to the user in the same turn.
@@ -154,7 +192,9 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
               const { reminders, buckets } = await runtime.snapshot(now);
               const lines = renderList(buckets, runtime.config, now);
               if (params.includeCleared === true) {
-                const cleared = reminders.filter((reminder) => reminder.ackedAt !== undefined);
+                const cleared = reminders.filter(
+                  (reminder) => reminder.ackedAt !== undefined,
+                );
                 if (cleared.length > 0) {
                   lines.push("", `Cleared (${cleared.length}):`);
                   for (const reminder of cleared.slice(-10)) {
@@ -166,27 +206,37 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
             }
 
             case "clear": {
-              if (params.id === undefined) return failure("`id` is required for action `clear`.");
-              const result = await mutate((reminders) => applyClear(reminders, params.id as string, now));
+              if (params.id === undefined)
+                return failure("`id` is required for action `clear`.");
+              const result = await mutate((reminders) =>
+                applyClear(reminders, params.id as string, now),
+              );
               const problem = explainFailure(result, params.id);
               if (problem !== undefined) return failure(problem);
               await runtime.refresh();
 
               const reminder = result.reminder as Reminder;
-              if (reminder.recurrence === undefined) return text(`Cleared ${reminder.id}.`);
+              if (reminder.recurrence === undefined)
+                return text(`Cleared ${reminder.id}.`);
               return text(
                 `Cleared ${reminder.id}. Next occurrence ${formatDue(reminder, now)} (every ${reminder.recurrence}).`,
               );
             }
 
             case "snooze": {
-              if (params.id === undefined) return failure("`id` is required for action `snooze`.");
+              if (params.id === undefined)
+                return failure("`id` is required for action `snooze`.");
               if (params.duration === undefined) {
                 return failure("`duration` is required for action `snooze`.");
               }
-              const target = parseSnoozeTarget(params.duration, now, runtime.config.allDayFireHour);
+              const target = parseSnoozeTarget(
+                params.duration,
+                now,
+                runtime.config.allDayFireHour,
+              );
               if (!target.ok) return failure(target.error);
-              if (target.value <= now) return failure("That snooze target is in the past.");
+              if (target.value <= now)
+                return failure("That snooze target is in the past.");
 
               const result = await mutate((reminders) =>
                 applySnooze(reminders, params.id as string, target.value),
@@ -202,8 +252,11 @@ export function registerTool(pi: ExtensionAPI, runtime: RemindersRuntime): void 
             }
 
             case "delete": {
-              if (params.id === undefined) return failure("`id` is required for action `delete`.");
-              const result = await mutate((reminders) => applyDelete(reminders, params.id as string));
+              if (params.id === undefined)
+                return failure("`id` is required for action `delete`.");
+              const result = await mutate((reminders) =>
+                applyDelete(reminders, params.id as string),
+              );
               const problem = explainFailure(result, params.id);
               if (problem !== undefined) return failure(problem);
               await runtime.refresh();

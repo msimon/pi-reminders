@@ -9,14 +9,22 @@
 // convergence work: clearing in window A drops out of window B's statusline
 // within one tick.
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { readConfig } from "./core/config.ts";
 import { computeBuckets } from "./core/derive.ts";
 import { formatDue } from "./core/format.ts";
 import { renderStartupReport } from "./core/render.ts";
 import { mutate, readState } from "./core/store.ts";
 import { applyAdd, applyTick, pastDue, type AddInput } from "./core/tick.ts";
-import { DEFAULT_CONFIG, type Buckets, type Reminder, type RemindersConfig } from "./core/types.ts";
+import {
+  DEFAULT_CONFIG,
+  type Buckets,
+  type Reminder,
+  type RemindersConfig,
+} from "./core/types.ts";
 import { GlanceSurfaces, TranscriptQueue } from "./surfaces/index.ts";
 import { sendBanner } from "./surfaces/notify.ts";
 
@@ -96,7 +104,9 @@ export class RemindersRuntime {
 
     try {
       const now = Date.now();
-      const fired = await mutate((reminders) => applyTick(reminders, now, this.#config));
+      const fired = await mutate((reminders) =>
+        applyTick(reminders, now, this.#config),
+      );
       const { reminders } = await readState();
       const buckets = computeBuckets(reminders, this.#config, now);
 
@@ -120,7 +130,9 @@ export class RemindersRuntime {
     return mutate((reminders) => applyAdd(reminders, input, now));
   }
   /** Current buckets without mutating anything. Used by the commands. */
-  async snapshot(now = Date.now()): Promise<{ reminders: Reminder[]; buckets: Buckets }> {
+  async snapshot(
+    now = Date.now(),
+  ): Promise<{ reminders: Reminder[]; buckets: Buckets }> {
     const loaded = await readState();
     if (loaded.recovered && !this.#warnedCorrupt) {
       this.#warnedCorrupt = true;
@@ -129,7 +141,10 @@ export class RemindersRuntime {
         "warning",
       );
     }
-    return { reminders: loaded.reminders, buckets: computeBuckets(loaded.reminders, this.#config, now) };
+    return {
+      reminders: loaded.reminders,
+      buckets: computeBuckets(loaded.reminders, this.#config, now),
+    };
   }
 
   /** Repaint the glanceable surfaces without running the state machine. */
@@ -167,7 +182,9 @@ export class RemindersRuntime {
   /** Toast + desktop banner + transcript for records this window just claimed. */
   async #announce(ctx: ExtensionContext, fired: Reminder[]): Promise<void> {
     const now = Date.now();
-    const lines = fired.map((r) => `⏰ ${r.message} — due ${formatDue(r, now)}`);
+    const lines = fired.map(
+      (r) => `⏰ ${r.message} — due ${formatDue(r, now)}`,
+    );
 
     if (ctx.hasUI) {
       ctx.ui.notify(lines.join("\n"), "warning");

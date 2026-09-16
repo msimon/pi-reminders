@@ -1,7 +1,11 @@
 // Slash-command argument parsing. Pure, so the shapes are testable without a
 // running pi.
 
-import { ACCEPTED_WHEN_FORMATS, type ParseResult, parseRecurrence } from "./parse.ts";
+import {
+  ACCEPTED_WHEN_FORMATS,
+  type ParseResult,
+  parseRecurrence,
+} from "./parse.ts";
 import type { Recurrence } from "./types.ts";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,7 +37,9 @@ function scanFlags(tokens: string[], names: readonly string[]): FlagScan {
 
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index] as string;
-    const name = token.startsWith("--") ? token.slice(2).toLowerCase() : undefined;
+    const name = token.startsWith("--")
+      ? token.slice(2).toLowerCase()
+      : undefined;
     if (name === undefined || !names.includes(name)) {
       rest.push(token);
       continue;
@@ -57,7 +63,10 @@ function scanFlags(tokens: string[], names: readonly string[]): FlagScan {
  * works without quoting.
  */
 export function parseRemindArgs(input: string): ParseResult<RemindArgs> {
-  const tokens = input.trim().split(/\s+/).filter((token) => token !== "");
+  const tokens = input
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token !== "");
   if (tokens.length === 0) {
     return {
       ok: false,
@@ -71,7 +80,10 @@ export function parseRemindArgs(input: string): ParseResult<RemindArgs> {
   const positional = scan.rest;
   const first = positional[0];
   if (first === undefined) {
-    return { ok: false, error: `Missing a date. Expected ${ACCEPTED_WHEN_FORMATS}.` };
+    return {
+      ok: false,
+      error: `Missing a date. Expected ${ACCEPTED_WHEN_FORMATS}.`,
+    };
   }
 
   let consumed = 1;
@@ -107,28 +119,41 @@ export interface SnoozeArgs {
 
 /** Split `<id> <duration>` or `<id> --until <date>`. */
 export function parseSnoozeArgs(input: string): ParseResult<SnoozeArgs> {
-  const tokens = input.trim().split(/\s+/).filter((token) => token !== "");
+  const tokens = input
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token !== "");
   const scan = scanFlags(tokens, ["until"]);
   if (scan.error !== undefined) return { ok: false, error: scan.error };
 
   const id = scan.rest[0];
   if (id === undefined) {
-    return { ok: false, error: "Usage: /reminders snooze <id> <duration>  |  --until <date>" };
+    return {
+      ok: false,
+      error: "Usage: /reminders snooze <id> <duration>  |  --until <date>",
+    };
   }
 
   const until = scan.values.get("until");
   if (until !== undefined) {
     // `--until 2026-01-20 09:00` arrives as two tokens; re-join a trailing time.
     const trailing = scan.rest[1];
-    const target = DATE_ONLY.test(until) && trailing !== undefined && TIME_ONLY.test(trailing)
-      ? `${until} ${trailing}`
-      : until;
+    const target =
+      DATE_ONLY.test(until) &&
+      trailing !== undefined &&
+      TIME_ONLY.test(trailing)
+        ? `${until} ${trailing}`
+        : until;
     return { ok: true, value: { id, target } };
   }
 
   const duration = scan.rest.slice(1).join(" ").trim();
   if (duration === "") {
-    return { ok: false, error: "Snooze needs a duration, e.g. `45m`, `3h`, `2d`, or `--until 2026-01-20`." };
+    return {
+      ok: false,
+      error:
+        "Snooze needs a duration, e.g. `45m`, `3h`, `2d`, or `--until 2026-01-20`.",
+    };
   }
 
   return { ok: true, value: { id, target: duration } };

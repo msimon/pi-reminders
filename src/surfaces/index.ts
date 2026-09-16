@@ -8,7 +8,10 @@
 // | TUI toast       | Tick, immediate — transient overlay         |
 // | Transcript line | Immediate if ctx.isIdle(), else at turn end |
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { renderStatusline, renderWidget } from "../core/render.ts";
 import type { Buckets, RemindersConfig } from "../core/types.ts";
@@ -29,10 +32,17 @@ export interface TranscriptData {
  * "dismissed" from it.
  */
 export function registerTranscriptRenderer(pi: ExtensionAPI): void {
-  pi.registerEntryRenderer<TranscriptData>(TRANSCRIPT_TYPE, (entry, _options, theme) => {
-    const lines = entry.data?.lines ?? [];
-    return new Text(lines.map((line) => theme.fg("warning", line)).join("\n"), 0, 0);
-  });
+  pi.registerEntryRenderer<TranscriptData>(
+    TRANSCRIPT_TYPE,
+    (entry, _options, theme) => {
+      const lines = entry.data?.lines ?? [];
+      return new Text(
+        lines.map((line) => theme.fg("warning", line)).join("\n"),
+        0,
+        0,
+      );
+    },
+  );
 }
 
 /**
@@ -47,7 +57,11 @@ export class GlanceSurfaces {
   #lastWidget: string | undefined;
   #widgetShown = false;
 
-  update(ctx: ExtensionContext, buckets: Buckets, config: RemindersConfig): void {
+  update(
+    ctx: ExtensionContext,
+    buckets: Buckets,
+    config: RemindersConfig,
+  ): void {
     if (!ctx.hasUI) return;
 
     const status = renderStatusline(buckets, config);

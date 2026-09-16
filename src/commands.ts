@@ -5,7 +5,10 @@
 // action) rather than a bespoke component, so it works in every UI-capable mode
 // without reimplementing keyboard handling.
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@earendil-works/pi-coding-agent";
 import { parseRemindArgs, parseSnoozeArgs } from "./core/args.ts";
 import { formatDue, formatReminderLine } from "./core/format.ts";
 import { parseSnoozeTarget, parseWhen } from "./core/parse.ts";
@@ -22,16 +25,28 @@ import type { Reminder } from "./core/types.ts";
 import type { RemindersRuntime } from "./runtime.ts";
 
 /** Turn a lookup failure into the same wording everywhere. */
-function explainFailure(result: IdMutationResult, id: string): string | undefined {
-  if (result.status === "not-found") return `No active reminder matching "${id}".`;
-  if (result.status === "ambiguous") return `"${id}" matches more than one reminder — use more characters.`;
+function explainFailure(
+  result: IdMutationResult,
+  id: string,
+): string | undefined {
+  if (result.status === "not-found")
+    return `No active reminder matching "${id}".`;
+  if (result.status === "ambiguous")
+    return `"${id}" matches more than one reminder — use more characters.`;
   return undefined;
 }
 
-export function registerCommands(pi: ExtensionAPI, runtime: RemindersRuntime): void {
+export function registerCommands(
+  pi: ExtensionAPI,
+  runtime: RemindersRuntime,
+): void {
   pi.registerCommand("remind", {
-    description: "Add a reminder: /remind <when> [--every day|week|month|year] <message>",
-    handler: async (args: string, ctx: ExtensionCommandContext): Promise<void> => {
+    description:
+      "Add a reminder: /remind <when> [--every day|week|month|year] <message>",
+    handler: async (
+      args: string,
+      ctx: ExtensionCommandContext,
+    ): Promise<void> => {
       const parsed = parseRemindArgs(args);
       if (!parsed.ok) {
         ctx.ui.notify(parsed.error, "error");
@@ -54,15 +69,23 @@ export function registerCommands(pi: ExtensionAPI, runtime: RemindersRuntime): v
         };
         // Assigned conditionally: exactOptionalPropertyTypes rejects an
         // explicit undefined for an optional property.
-        if (parsed.value.recurrence !== undefined) input.recurrence = parsed.value.recurrence;
+        if (parsed.value.recurrence !== undefined)
+          input.recurrence = parsed.value.recurrence;
 
         const added = await runtime.add(input);
         // Echo the resolved absolute time back, whatever was typed.
-        const every = added.recurrence === undefined ? "" : `, every ${added.recurrence}`;
-        ctx.ui.notify(`Reminder ${added.id} set for ${formatDue(added, now)}${every}.`, "info");
+        const every =
+          added.recurrence === undefined ? "" : `, every ${added.recurrence}`;
+        ctx.ui.notify(
+          `Reminder ${added.id} set for ${formatDue(added, now)}${every}.`,
+          "info",
+        );
         await runtime.refresh();
       } catch (error: unknown) {
-        ctx.ui.notify(`[reminders] ${error instanceof Error ? error.message : String(error)}`, "error");
+        ctx.ui.notify(
+          `[reminders] ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
       }
     },
   });
@@ -71,10 +94,15 @@ export function registerCommands(pi: ExtensionAPI, runtime: RemindersRuntime): v
     description: "List reminders, or: /reminders clear|snooze|delete <id>",
     getArgumentCompletions: (prefix: string) => {
       const subcommands = ["list", "all", "clear", "snooze", "delete"];
-      const match = subcommands.filter((name) => name.startsWith(prefix.trim().toLowerCase()));
+      const match = subcommands.filter((name) =>
+        name.startsWith(prefix.trim().toLowerCase()),
+      );
       return match.map((name) => ({ value: name, label: name }));
     },
-    handler: async (args: string, ctx: ExtensionCommandContext): Promise<void> => {
+    handler: async (
+      args: string,
+      ctx: ExtensionCommandContext,
+    ): Promise<void> => {
       const trimmed = args.trim();
       const [subcommand = "", ...rest] = trimmed.split(/\s+/);
       const remainder = rest.join(" ");
@@ -106,7 +134,10 @@ export function registerCommands(pi: ExtensionAPI, runtime: RemindersRuntime): v
             );
         }
       } catch (error: unknown) {
-        ctx.ui.notify(`[reminders] ${error instanceof Error ? error.message : String(error)}`, "error");
+        ctx.ui.notify(
+          `[reminders] ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
       }
     },
   });
@@ -122,7 +153,9 @@ async function printList(
   const lines = renderList(buckets, runtime.config, now);
 
   if (includeCleared) {
-    const cleared = reminders.filter((reminder) => reminder.ackedAt !== undefined);
+    const cleared = reminders.filter(
+      (reminder) => reminder.ackedAt !== undefined,
+    );
     if (cleared.length > 0) {
       lines.push("", `Cleared (${cleared.length})`);
       for (const reminder of cleared.slice(-10)) {
@@ -174,7 +207,11 @@ async function runSnooze(
   }
 
   const now = Date.now();
-  const target = parseSnoozeTarget(parsed.value.target, now, runtime.config.allDayFireHour);
+  const target = parseSnoozeTarget(
+    parsed.value.target,
+    now,
+    runtime.config.allDayFireHour,
+  );
   if (!target.ok) {
     ctx.ui.notify(target.error, "error");
     return;
@@ -221,11 +258,16 @@ async function runDelete(
   }
 
   const { reminders } = await runtime.snapshot();
-  const target = reminders.find((reminder) => reminder.id === id.trim().toLowerCase());
+  const target = reminders.find(
+    (reminder) => reminder.id === id.trim().toLowerCase(),
+  );
   const label = target === undefined ? id : `"${target.message}"`;
 
   // Delete is the only irreversible operation, so it confirms.
-  const confirmed = await ctx.ui.confirm("Delete reminder?", `Permanently delete ${label}?`);
+  const confirmed = await ctx.ui.confirm(
+    "Delete reminder?",
+    `Permanently delete ${label}?`,
+  );
   if (!confirmed) return;
 
   await deleteById(ctx, runtime, id);
@@ -259,17 +301,30 @@ const SNOOZE_CHOICES: [string, string][] = [
  * The select labels double as the grouped list, so there is no separate
  * rendering to keep in sync.
  */
-async function openPicker(ctx: ExtensionCommandContext, runtime: RemindersRuntime): Promise<void> {
+async function openPicker(
+  ctx: ExtensionCommandContext,
+  runtime: RemindersRuntime,
+): Promise<void> {
   const now = Date.now();
   const { buckets } = await runtime.snapshot(now);
-  const ordered = [...buckets.overdue, ...buckets.today, ...buckets.week, ...buckets.later];
+  const ordered = [
+    ...buckets.overdue,
+    ...buckets.today,
+    ...buckets.week,
+    ...buckets.later,
+  ];
 
   if (ordered.length === 0) {
-    ctx.ui.notify("No active reminders. Add one with /remind <when> <message>.", "info");
+    ctx.ui.notify(
+      "No active reminders. Add one with /remind <when> <message>.",
+      "info",
+    );
     return;
   }
 
-  const labels = ordered.map((reminder) => formatReminderLine(reminder, runtime.config, now));
+  const labels = ordered.map((reminder) =>
+    formatReminderLine(reminder, runtime.config, now),
+  );
   const choice = await ctx.ui.select("Reminders:", labels);
   if (choice === undefined) return;
 
@@ -289,7 +344,10 @@ async function openPicker(ctx: ExtensionCommandContext, runtime: RemindersRuntim
   }
 
   if (action === DELETE) {
-    const confirmed = await ctx.ui.confirm("Delete reminder?", `Permanently delete "${reminder.message}"?`);
+    const confirmed = await ctx.ui.confirm(
+      "Delete reminder?",
+      `Permanently delete "${reminder.message}"?`,
+    );
     if (!confirmed) return;
     await deleteById(ctx, runtime, reminder.id);
     return;
@@ -297,7 +355,11 @@ async function openPicker(ctx: ExtensionCommandContext, runtime: RemindersRuntim
 
   const snooze = SNOOZE_CHOICES.find(([label]) => label === action);
   if (snooze === undefined) return;
-  const target = parseSnoozeTarget(snooze[1], now, runtime.config.allDayFireHour);
+  const target = parseSnoozeTarget(
+    snooze[1],
+    now,
+    runtime.config.allDayFireHour,
+  );
   if (!target.ok) return;
   await applySnoozeById(ctx, runtime, reminder.id, target.value);
 }

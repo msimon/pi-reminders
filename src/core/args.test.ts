@@ -44,7 +44,9 @@ describe("parseRemindArgs", () => {
   });
 
   it("extracts --every after a date and time", () => {
-    const result = parseRemindArgs("2026-01-05 09:00 --every week submit timesheet");
+    const result = parseRemindArgs(
+      "2026-01-05 09:00 --every week submit timesheet",
+    );
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.value.when, "2026-01-05 09:00");
@@ -53,7 +55,9 @@ describe("parseRemindArgs", () => {
   });
 
   it("extracts --every from the end of the line", () => {
-    const result = parseRemindArgs("2026-01-31 reconcile invoices --every month");
+    const result = parseRemindArgs(
+      "2026-01-31 reconcile invoices --every month",
+    );
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.value.recurrence, "month");

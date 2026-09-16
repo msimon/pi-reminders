@@ -7,7 +7,10 @@
 // The state file is the only source of truth. Every surface is a projection of
 // it, and every mutation acts on a record.
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { registerCommands } from "./commands.ts";
 import { RemindersRuntime } from "./runtime.ts";
 import { registerTranscriptRenderer } from "./surfaces/index.ts";
