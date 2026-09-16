@@ -34,7 +34,7 @@
     ]
   },
   "scripts": {
-    "test": "TZ=America/New_York node --test --experimental-strip-types 'src/**/*.test.ts'",
+    "test": "TZ=Europe/London node --test --experimental-strip-types 'src/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {

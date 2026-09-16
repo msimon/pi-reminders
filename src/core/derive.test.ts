@@ -87,11 +87,20 @@ describe("derived times", () => {
   });
 
   it("keeps the all-day calendar date across a DST boundary", () => {
-    // US DST starts 2026-03-08. A record created before it must still read as
-    // March 8 afterwards, which is why storage is anchored at local noon.
-    const r = allDay(2026, 3, 8);
-    assert.equal(new Date(Date.parse(r.dueAt)).getDate(), 8);
-    assert.equal(fireAt(r, CONFIG), local(2026, 3, 8, 9, 0));
+    // London clocks go forward 2026-03-29. A record created before it must
+    // still read as March 29 afterwards, which is why storage is anchored at
+    // local noon: midnight would slide the date under the offset change.
+    const r = allDay(2026, 3, 29);
+    assert.equal(new Date(Date.parse(r.dueAt)).getDate(), 29);
+    assert.equal(fireAt(r, CONFIG), local(2026, 3, 29, 9, 0));
+  });
+
+  it("keeps the all-day calendar date when the clocks go back", () => {
+    // The autumn transition, 2026-10-25, shifts the offset the other way.
+    const r = allDay(2026, 10, 25);
+    assert.equal(new Date(Date.parse(r.dueAt)).getDate(), 25);
+    assert.equal(fireAt(r, CONFIG), local(2026, 10, 25, 9, 0));
+    assert.equal(overdueAt(r, CONFIG), local(2026, 10, 25, 23, 59));
   });
 
   it("treats a snoozed reminder as neither overdue nor firing", () => {
@@ -126,13 +135,14 @@ describe("recurrence", () => {
   const anchorOf = (r: Reminder): number => Date.parse(r.dueAt);
 
   it("keeps the weekday and wall-clock time across a DST shift", () => {
-    // 2026-03-01 is a Sunday; DST starts 2026-03-08 in the US.
-    const anchor = local(2026, 3, 1, 9, 0);
+    // 2026-03-22 is a Sunday; London clocks go forward on Sunday 2026-03-29,
+    // so this step crosses the transition.
+    const anchor = local(2026, 3, 22, 9, 0);
     const next = nthOccurrence(anchor, "week", 1);
     const at = new Date(next);
     assert.equal(at.getDay(), new Date(anchor).getDay(), "same weekday");
     assert.equal(at.getHours(), 9, "same wall-clock hour");
-    assert.equal(at.getDate(), 8);
+    assert.equal(at.getDate(), 29);
   });
 
   it("clamps Jan 31 monthly to the last day of shorter months", () => {
