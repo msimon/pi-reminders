@@ -4,8 +4,11 @@ You are implementing `@msimon/pi-reminders`, a Pi coding-agent extension.
 
 **Read `docs/design.md` first and in full.** It is the specification and it is
 settled — every decision in it was argued through and several were reversed after
-testing against the real UI. Do not redesign. If something in this file and the
-design doc disagree, the design doc wins; flag the conflict rather than picking.
+testing against the real UI. Do not redesign.
+
+If this file and the design doc disagree, follow the design doc so you are not
+blocked — but report the disagreement rather than resolving it silently. A
+conflict means one of the two is wrong and needs fixing at the source.
 
 ## What this is
 
