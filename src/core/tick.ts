@@ -125,7 +125,7 @@ export function resolveId(reminders: Reminder[], id: string): Resolved | LookupF
   return { reminder: reminders[index] as Reminder, index };
 }
 
-export type MutationStatus = "ok" | LookupFailure;
+type MutationStatus = "ok" | LookupFailure;
 
 export interface IdMutationResult {
   status: MutationStatus;

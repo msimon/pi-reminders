@@ -16,11 +16,11 @@ import { Text } from "@earendil-works/pi-tui";
 import { renderStatusline, renderWidget } from "../core/render.ts";
 import type { Buckets, RemindersConfig } from "../core/types.ts";
 
-export const STATUS_KEY = "reminders";
-export const WIDGET_KEY = "reminders";
-export const TRANSCRIPT_TYPE = "reminders-fired";
+const STATUS_KEY = "reminders";
+const WIDGET_KEY = "reminders";
+const TRANSCRIPT_TYPE = "reminders-fired";
 
-export interface TranscriptData {
+interface TranscriptData {
   lines: string[];
 }
 

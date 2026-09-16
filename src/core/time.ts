@@ -34,7 +34,7 @@ export function localNoon(date: LocalDate): number {
 }
 
 /** Midnight at the start of the local day containing `at`. */
-export function startOfLocalDay(at: Date | number): number {
+function startOfLocalDay(at: Date | number): number {
   return atLocalTime(localDateOf(at), 0, 0);
 }
 
@@ -105,10 +105,4 @@ const PAD = (n: number): string => String(n).padStart(2, "0");
 export function formatLocalDateTime(at: Date | number): string {
   const d = at instanceof Date ? at : new Date(at);
   return `${d.getFullYear()}-${PAD(d.getMonth() + 1)}-${PAD(d.getDate())} ${PAD(d.getHours())}:${PAD(d.getMinutes())}`;
-}
-
-/** `YYYY-MM-DD` in local time. */
-export function formatLocalDate(at: Date | number): string {
-  const d = at instanceof Date ? at : new Date(at);
-  return `${d.getFullYear()}-${PAD(d.getMonth() + 1)}-${PAD(d.getDate())}`;
 }

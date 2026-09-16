@@ -13,6 +13,7 @@ import { parseRemindArgs, parseSnoozeArgs } from "./core/args.ts";
 import { formatDue, formatReminderLine } from "./core/format.ts";
 import { parseSnoozeTarget, parseWhen } from "./core/parse.ts";
 import { renderList } from "./core/render.ts";
+import { formatLocalDateTime } from "./core/time.ts";
 import { mutate } from "./core/store.ts";
 import {
   applyClear,
@@ -237,14 +238,11 @@ async function applySnoozeById(
     return;
   }
   const reminder = result.reminder as Reminder;
-  ctx.ui.notify(`Snoozed ${reminder.id} until ${formatLocal(until)}.`, "info");
+  ctx.ui.notify(
+    `Snoozed ${reminder.id} until ${formatLocalDateTime(until)}.`,
+    "info",
+  );
   await runtime.refresh();
-}
-
-function formatLocal(at: number): string {
-  const d = new Date(at);
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 async function runDelete(
