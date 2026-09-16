@@ -342,25 +342,38 @@ Slash commands (human entrypoint):
 
 | Command | Behaviour |
 | --- | --- |
-| `/remind <when> [--every <unit>] <message>` | Add. Absolute, relative, or natural language. Echoes back the resolved time. |
 | `/reminders` | List, grouped overdue / today / upcoming. Interactive picker with no args. |
 | `/reminders clear <id>` | Ack. Recurring reminders roll to the next occurrence. |
 | `/reminders snooze <id> <duration>` | Relative (`45m`, `3h`, `2d`) or `--until <date>`. |
 | `/reminders delete <id>` | Remove entirely. Confirms. |
 
-Canonical date format: `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (timed). The
-presence of a time component is what sets `allDay` — no separate flag to pass.
-Relative offsets are always timed. See Relative dates below for the other accepted
-forms; whatever you type, the resolved absolute timestamp is echoed back.
+**There is no `/remind` command.** Adding is agent-only. This reverses an earlier
+draft of this table, which described `/remind` as accepting "absolute, relative, or
+natural language" — that contradicted the Natural language section below, which is
+load-bearing: the extension never parses relative dates. A slash command has no
+model in the path, so it could only accept the raw forms, and the one form a human
+would reach for first (`tomorrow 9am`) is exactly what the parser must reject.
+
+Worse, it accepted `1d 9am ship it` without complaint: `<when>` is a single token,
+so `1d` resolved to this time tomorrow and `9am` was absorbed into the message. A
+silent six-hour error is the failure mode the "reject, never guess" rule exists to
+prevent, and the rule could not see it because `1d` was valid on its own. Removing
+the surface removes the class of bug, rather than patching one instance of it.
+
+Canonical date format for the tool and for `snooze`: `YYYY-MM-DD` (all-day) or
+`YYYY-MM-DD HH:MM` (timed). The presence of a time component is what sets `allDay`
+— no separate flag to pass. Relative offsets are always timed. See Relative dates
+below for the other accepted forms; whatever is passed, the resolved absolute
+timestamp is echoed back.
 
 ### Recurrence
 
 The date is the **first occurrence**; `--every` makes it repeat from there.
 
-```sh
-/remind 2026-03-14 --every year  Sarah's birthday
-/remind 2026-01-05 09:00 --every week  submit timesheet
-/remind 2026-01-31 --every month  reconcile invoices
+```text
+"remind me every year on 14 March about Sarah's birthday"
+"remind me to submit my timesheet at 09:00 every week"
+"remind me to reconcile invoices on the 31st, every month"
 ```
 
 Units: `day`, `week`, `month`, `year`. The agent tool takes the same value as a
@@ -402,8 +415,8 @@ sets `allDay`. Read as the user's local wall-clock time.
 Always timed, and stored as exactly that instant.
 
 **Relative offset** — `<N><m|h|d|w>`: `45m`, `3h`, `2d`, `1w`. A single regex,
-`^(\d+)([mhdw])$`. Always timed. This covers the common case for both commands —
-`/remind 2h take a break` is far nicer than typing a timestamp.
+`^(\d+)([mhdw])$`. Always timed. This is the common case for `snooze`, where
+`2h` is far nicer than typing a timestamp.
 
 Anything else is **rejected with the accepted formats**, never guessed at. No
 date library: `chrono-node` would be 2.76 MB for ambiguity we do not want

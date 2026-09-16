@@ -9,9 +9,9 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import { parseRemindArgs, parseSnoozeArgs } from "./core/args.ts";
+import { parseSnoozeArgs } from "./core/args.ts";
 import { formatDue, formatReminderLine } from "./core/format.ts";
-import { parseSnoozeTarget, parseWhen } from "./core/parse.ts";
+import { parseSnoozeTarget } from "./core/parse.ts";
 import { renderList } from "./core/render.ts";
 import { formatLocalDateTime } from "./core/time.ts";
 import { mutate } from "./core/store.ts";
@@ -19,7 +19,6 @@ import {
   applyClear,
   applyDelete,
   applySnooze,
-  type AddInput,
   type IdMutationResult,
 } from "./core/tick.ts";
 import type { Reminder } from "./core/types.ts";
@@ -41,56 +40,6 @@ export function registerCommands(
   pi: ExtensionAPI,
   runtime: RemindersRuntime,
 ): void {
-  pi.registerCommand("remind", {
-    description:
-      "Add a reminder: /remind <when> [--every day|week|month|year] <message>",
-    handler: async (
-      args: string,
-      ctx: ExtensionCommandContext,
-    ): Promise<void> => {
-      const parsed = parseRemindArgs(args);
-      if (!parsed.ok) {
-        ctx.ui.notify(parsed.error, "error");
-        return;
-      }
-
-      const now = Date.now();
-      const when = parseWhen(parsed.value.when, now);
-      if (!when.ok) {
-        ctx.ui.notify(when.error, "error");
-        return;
-      }
-
-      try {
-        const input: AddInput = {
-          message: parsed.value.message,
-          dueAt: when.value.dueAt,
-          allDay: when.value.allDay,
-          cwd: ctx.cwd,
-        };
-        // Assigned conditionally: exactOptionalPropertyTypes rejects an
-        // explicit undefined for an optional property.
-        if (parsed.value.recurrence !== undefined)
-          input.recurrence = parsed.value.recurrence;
-
-        const added = await runtime.add(input);
-        // Echo the resolved absolute time back, whatever was typed.
-        const every =
-          added.recurrence === undefined ? "" : `, every ${added.recurrence}`;
-        ctx.ui.notify(
-          `Reminder ${added.id} set for ${formatDue(added, now)}${every}.`,
-          "info",
-        );
-        await runtime.refresh();
-      } catch (error: unknown) {
-        ctx.ui.notify(
-          `[reminders] ${error instanceof Error ? error.message : String(error)}`,
-          "error",
-        );
-      }
-    },
-  });
-
   pi.registerCommand("reminders", {
     description: "List reminders, or: /reminders clear|snooze|delete <id>",
     getArgumentCompletions: (prefix: string) => {

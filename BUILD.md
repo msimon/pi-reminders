@@ -79,7 +79,8 @@ Build in this order. Each step should be working and committed before the next.
    something due at 23:30 tonight is `today` and 00:30 tomorrow is not.
 3. **Surfaces** — statusline first, then the overdue-only widget line, then the
    TUI toast, then `cmux notify`, then the transcript line.
-4. **Commands** — `/remind`, `/reminders` and its subcommands, interactive picker.
+4. **Commands** — `/reminders` and its subcommands, interactive picker. No
+   `/remind`: adding is agent-only, see the note in `docs/design.md`.
 5. **Agent tool** — `reminder` with `add | list | clear | snooze | delete`.
 6. **Session-start report** — past-due, capped at 5 plus "and N more".
 

@@ -34,13 +34,18 @@ No build step — Pi loads the TypeScript directly. Zero runtime dependencies.
 
 | Command | Behaviour |
 | --- | --- |
-| `/remind <when> [--every <unit>] <message>` | Add. Echoes back the resolved time. |
 | `/reminders` | Interactive picker: choose a reminder, then clear / snooze / delete. |
 | `/reminders list` | Grouped list: overdue, today, this week, later. |
 | `/reminders all` | As above, plus recently cleared. |
 | `/reminders clear <id>` | Acknowledge. Recurring reminders roll to the next occurrence. |
 | `/reminders snooze <id> <duration>` | Snooze. Also `--until <date>`. |
 | `/reminders delete <id>` | Remove entirely. Confirms first. |
+
+There is no `/remind` command. Reminders are created through the agent, which
+resolves natural language ("remind me tomorrow at 9 to ship it") to an absolute
+timestamp before calling the tool. A slash command has no model in the path, so
+it could only ever accept the raw formats below — and silently mis-read things
+like `1d 9am`, where the time of day is not part of a single-token offset.
 
 Ids are short hex (`a3f`). Any unique prefix works, so `/reminders clear a` is
 usually enough.
@@ -64,10 +69,10 @@ absolute timestamp before calling. Whatever you type, the resolved time is
 echoed back.
 
 ```sh
-/remind 2h take a break
-/remind 2026-01-20 09:00 send the invoice
-/remind 2026-03-14 --every year Sarah's birthday
-/remind 2026-01-31 --every month reconcile invoices
+# Via the agent, which resolves the date and calls the tool:
+"remind me in 2 hours to take a break"
+"remind me on 20 Jan at 09:00 to send the invoice"
+"remind me every year on 14 March about Sarah's birthday"
 ```
 
 ### Recurrence
