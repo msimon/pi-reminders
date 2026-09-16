@@ -180,7 +180,7 @@ export type Mutation<T> = (reminders: Reminder[]) => MutationOutcome<T>;
  * Exhausting the retries surfaces an explicit error. A silently dropped add is
  * the one failure mode that destroys trust in the whole thing.
  */
-export async function mutate<T>(mutation: Mutation<T>): Promise<T> {
+async function mutateOnce<T>(mutation: Mutation<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_CAS_ATTEMPTS; attempt++) {
     const loaded = await readState();
@@ -209,6 +209,35 @@ export async function mutate<T>(mutation: Mutation<T>): Promise<T> {
 
   if (lastError !== undefined) throw lastError;
   throw new CasError(MAX_CAS_ATTEMPTS);
+}
+
+/**
+ * Serializes every mutation in THIS process onto one chain.
+ *
+ * CAS alone is not enough here. `mutateOnce` awaits between its verify and its
+ * write, and an await boundary lets another task in the same process run in
+ * that gap: two concurrent callers both verify against the same hash, then both
+ * write, and the second silently clobbers the first. That is not the
+ * cross-process race the design accepts as a microsecond window — the event
+ * loop makes it likely rather than theoretical, and it reproduces immediately
+ * with parallel `reminder` tool calls, which Pi runs concurrently by default.
+ *
+ * Chaining costs nothing (mutations are sub-millisecond file writes) and leaves
+ * CAS responsible for exactly what it is good at: the genuinely cross-process
+ * case of another pi window writing between our read and our write.
+ */
+let mutationQueue: Promise<unknown> = Promise.resolve();
+
+export async function mutate<T>(mutation: Mutation<T>): Promise<T> {
+  // settle() rather than .then() so one caller's rejection cannot cancel the
+  // mutations queued behind it.
+  const settle = (): Promise<T> => mutateOnce(mutation);
+  const run = mutationQueue.then(settle, settle);
+  mutationQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 }
 
 /** Overwrite the whole list. Used by tests and by an explicit repair path. */

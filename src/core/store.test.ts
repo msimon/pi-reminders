@@ -239,4 +239,47 @@ describe("compare-and-swap", () => {
     const loaded = await readState();
     assert.deepEqual(loaded.reminders.map((r) => r.id), ["aaa", "one", "two"]);
   });
+
+  it("lands every mutation when they are issued concurrently in-process", async () => {
+    // Regression: Pi runs tool calls in parallel by default, so two `reminder`
+    // add calls hit mutate() concurrently. CAS alone did not cover this --
+    // mutateOnce awaits between its verify and its write, and both callers
+    // verified the same hash then both wrote, so the second silently clobbered
+    // the first. Observed live as an add that reported success and vanished.
+    const names = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    await Promise.all(
+      names.map((name) =>
+        mutate((reminders) => ({
+          reminders: [...reminders, reminder({ id: name })],
+          result: null,
+          changed: true,
+        })),
+      ),
+    );
+
+    const loaded = await readState();
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id).sort(),
+      [...names].sort(),
+      "no mutation was lost",
+    );
+  });
+
+  it("keeps serving queued mutations after one of them throws", async () => {
+    // The queue must not be poisoned by a failure, or one bad mutation would
+    // silently stall every reminder written afterwards.
+    const boom = mutate(() => {
+      throw new Error("boom");
+    });
+    await assert.rejects(boom, /boom/);
+
+    await mutate((reminders) => ({
+      reminders: [...reminders, reminder({ id: "after" })],
+      result: null,
+      changed: true,
+    }));
+
+    const loaded = await readState();
+    assert.deepEqual(loaded.reminders.map((r) => r.id), ["after"]);
+  });
 });
