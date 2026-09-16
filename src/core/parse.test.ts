@@ -3,7 +3,12 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseDuration, parseRecurrence, parseSnoozeTarget, parseWhen } from "./parse.ts";
+import {
+  parseDuration,
+  parseRecurrence,
+  parseSnoozeTarget,
+  parseWhen,
+} from "./parse.ts";
 
 const NOW = new Date(2026, 0, 15, 12, 0, 0).getTime();
 
@@ -96,7 +101,12 @@ describe("parseWhen", () => {
   });
 
   it("rejects impossible calendar dates", () => {
-    for (const input of ["2026-02-30", "2026-13-01", "2026-00-10", "2025-02-29"]) {
+    for (const input of [
+      "2026-02-30",
+      "2026-13-01",
+      "2026-00-10",
+      "2025-02-29",
+    ]) {
       const result = parseWhen(input, NOW);
       assert.equal(result.ok, false, input);
     }
@@ -173,7 +183,10 @@ describe("parseWhen", () => {
   });
 
   it("still rejects a malformed zone", () => {
-    for (const input of ["2026-01-20T09:30:00+25:00", "2026-01-20T09:30:00QQ"]) {
+    for (const input of [
+      "2026-01-20T09:30:00+25:00",
+      "2026-01-20T09:30:00QQ",
+    ]) {
       assert.equal(parseWhen(input, NOW).ok, false, input);
     }
   });

@@ -9,7 +9,9 @@
 import { daysInMonth, localNoon } from "./time.ts";
 import { RECURRENCE_UNITS, type Recurrence } from "./types.ts";
 
-export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
+export type ParseResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string };
 
 export const ACCEPTED_WHEN_FORMATS =
   "absolute `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (local, timed), a zoned instant such as `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`, or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";
@@ -52,7 +54,11 @@ export interface ParsedWhen {
   allDay: boolean;
 }
 
-function isRealCalendarDate(year: number, month1: number, day: number): boolean {
+function isRealCalendarDate(
+  year: number,
+  month1: number,
+  day: number,
+): boolean {
   if (month1 < 1 || month1 > 12) return false;
   if (day < 1) return false;
   return day <= daysInMonth(year, month1 - 1);
@@ -65,7 +71,10 @@ function isRealCalendarDate(year: number, month1: number, day: number): boolean 
 export function parseDuration(input: string): ParseResult<number> {
   const match = OFFSET.exec(input.trim().toLowerCase());
   if (match === null) {
-    return { ok: false, error: `Could not read "${input.trim()}". Expected ${ACCEPTED_DURATION_FORMATS}.` };
+    return {
+      ok: false,
+      error: `Could not read "${input.trim()}". Expected ${ACCEPTED_DURATION_FORMATS}.`,
+    };
   }
   const amount = Number.parseInt(match[1] as string, 10);
   if (amount <= 0) {
@@ -84,7 +93,10 @@ export function parseDuration(input: string): ParseResult<number> {
 export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
   const raw = input.trim();
   if (raw === "") {
-    return { ok: false, error: `Missing a date. Expected ${ACCEPTED_WHEN_FORMATS}.` };
+    return {
+      ok: false,
+      error: `Missing a date. Expected ${ACCEPTED_WHEN_FORMATS}.`,
+    };
   }
 
   const dateOnly = DATE_ONLY.exec(raw);
@@ -97,7 +109,10 @@ export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
     }
     // Anchored at local noon so the calendar date survives DST and travel.
     const at = localNoon({ year, month: month1 - 1, day });
-    return { ok: true, value: { dueAt: new Date(at).toISOString(), allDay: true } };
+    return {
+      ok: true,
+      value: { dueAt: new Date(at).toISOString(), allDay: true },
+    };
   }
 
   const dateTime = DATE_TIME.exec(raw);
@@ -107,7 +122,8 @@ export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
     const day = Number.parseInt(dateTime[3] as string, 10);
     const hour = Number.parseInt(dateTime[4] as string, 10);
     const minute = Number.parseInt(dateTime[5] as string, 10);
-    const second = dateTime[6] === undefined ? 0 : Number.parseInt(dateTime[6], 10);
+    const second =
+      dateTime[6] === undefined ? 0 : Number.parseInt(dateTime[6], 10);
     if (!isRealCalendarDate(year, month1, day)) {
       return { ok: false, error: `"${raw}" is not a real calendar date.` };
     }
@@ -115,7 +131,10 @@ export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
       return { ok: false, error: `"${raw}" is not a real time of day.` };
     }
     const at = new Date(year, month1 - 1, day, hour, minute, second).getTime();
-    return { ok: true, value: { dueAt: new Date(at).toISOString(), allDay: false } };
+    return {
+      ok: true,
+      value: { dueAt: new Date(at).toISOString(), allDay: false },
+    };
   }
 
   const zoned = ZONED_DATE_TIME.exec(raw);
@@ -148,22 +167,37 @@ export function parseWhen(input: string, now: number): ParseResult<ParsedWhen> {
       return { ok: false, error: `Could not read the timezone in "${raw}".` };
     }
     // An explicit zone names an exact instant, so it is always timed.
-    return { ok: true, value: { dueAt: new Date(at).toISOString(), allDay: false } };
+    return {
+      ok: true,
+      value: { dueAt: new Date(at).toISOString(), allDay: false },
+    };
   }
   const offset = parseDuration(raw);
   if (offset.ok) {
     // Relative offsets are always timed.
-    return { ok: true, value: { dueAt: new Date(now + offset.value).toISOString(), allDay: false } };
+    return {
+      ok: true,
+      value: {
+        dueAt: new Date(now + offset.value).toISOString(),
+        allDay: false,
+      },
+    };
   }
 
-  return { ok: false, error: `Could not read "${raw}". Expected ${ACCEPTED_WHEN_FORMATS}.` };
+  return {
+    ok: false,
+    error: `Could not read "${raw}". Expected ${ACCEPTED_WHEN_FORMATS}.`,
+  };
 }
 
 export function parseRecurrence(input: string): ParseResult<Recurrence> {
   const raw = input.trim().toLowerCase();
   const found = RECURRENCE_UNITS.find((unit) => unit === raw);
   if (found === undefined) {
-    return { ok: false, error: `Unknown recurrence "${input.trim()}". Expected one of: ${RECURRENCE_UNITS.join(", ")}.` };
+    return {
+      ok: false,
+      error: `Unknown recurrence "${input.trim()}". Expected one of: ${RECURRENCE_UNITS.join(", ")}.`,
+    };
   }
   return { ok: true, value: found };
 }
@@ -191,6 +225,12 @@ export function parseSnoozeTarget(
   const at = new Date(due);
   return {
     ok: true,
-    value: new Date(at.getFullYear(), at.getMonth(), at.getDate(), allDayFireHour, 0).getTime(),
+    value: new Date(
+      at.getFullYear(),
+      at.getMonth(),
+      at.getDate(),
+      allDayFireHour,
+      0,
+    ).getTime(),
   };
 }

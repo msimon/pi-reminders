@@ -11,7 +11,13 @@
 // and on wake is inherently sleep-safe — a reminder whose fire time passed
 // during sleep fires on the next tick, marked late rather than silently skipped.
 
-import { clearReminder, fireAt, isActive, isOverdue, isSnoozed } from "./derive.ts";
+import {
+  clearReminder,
+  fireAt,
+  isActive,
+  isOverdue,
+  isSnoozed,
+} from "./derive.ts";
 import { generateId } from "./ids.ts";
 import type { MutationOutcome } from "./store.ts";
 import type { Recurrence, Reminder, RemindersConfig } from "./types.ts";
@@ -35,7 +41,11 @@ export interface TickResult {
  * Because the mutation is re-applied against freshly read data on every CAS
  * retry, the losing window's `fired` list comes back empty rather than stale.
  */
-export function applyTick(reminders: Reminder[], now: number, config: RemindersConfig): MutationOutcome<TickResult> {
+export function applyTick(
+  reminders: Reminder[],
+  now: number,
+  config: RemindersConfig,
+): MutationOutcome<TickResult> {
   const nowIso = new Date(now).toISOString();
   const fired: Reminder[] = [];
   let changed = false;
@@ -94,7 +104,11 @@ export function applyAdd(
   };
   if (input.recurrence !== undefined) reminder.recurrence = input.recurrence;
 
-  return { reminders: [...reminders, reminder], result: reminder, changed: true };
+  return {
+    reminders: [...reminders, reminder],
+    result: reminder,
+    changed: true,
+  };
 }
 
 export type LookupFailure = "not-found" | "ambiguous";
@@ -108,16 +122,21 @@ export interface Resolved {
  * Find one active record by id, accepting a unique prefix so a 3-char id can be
  * shortened further when the file is small.
  */
-export function resolveId(reminders: Reminder[], id: string): Resolved | LookupFailure {
+export function resolveId(
+  reminders: Reminder[],
+  id: string,
+): Resolved | LookupFailure {
   const needle = id.trim().toLowerCase();
   if (needle === "") return "not-found";
 
   const exact = reminders.findIndex((r) => r.id === needle && isActive(r));
-  if (exact !== -1) return { reminder: reminders[exact] as Reminder, index: exact };
+  if (exact !== -1)
+    return { reminder: reminders[exact] as Reminder, index: exact };
 
   const matches: number[] = [];
   reminders.forEach((reminder, index) => {
-    if (isActive(reminder) && reminder.id.startsWith(needle)) matches.push(index);
+    if (isActive(reminder) && reminder.id.startsWith(needle))
+      matches.push(index);
   });
   if (matches.length === 0) return "not-found";
   if (matches.length > 1) return "ambiguous";
@@ -158,7 +177,11 @@ function byId(
 }
 
 /** Ack. Recurring records roll to their next occurrence instead of tombstoning. */
-export function applyClear(reminders: Reminder[], id: string, now: number): MutationOutcome<IdMutationResult> {
+export function applyClear(
+  reminders: Reminder[],
+  id: string,
+  now: number,
+): MutationOutcome<IdMutationResult> {
   return byId(reminders, id, (reminder) => clearReminder(reminder, now));
 }
 
@@ -178,7 +201,10 @@ export function applySnooze(
 }
 
 /** Remove entirely. The only operation that drops a record from the file. */
-export function applyDelete(reminders: Reminder[], id: string): MutationOutcome<IdMutationResult> {
+export function applyDelete(
+  reminders: Reminder[],
+  id: string,
+): MutationOutcome<IdMutationResult> {
   return byId(reminders, id, () => null);
 }
 
@@ -189,7 +215,11 @@ export function applyDelete(reminders: Reminder[], id: string): MutationOutcome<
  * is the intended nagging behaviour; snooze is the pressure valve that keeps it
  * tolerable rather than something you train yourself to ignore.
  */
-export function pastDue(reminders: Reminder[], config: RemindersConfig, now: number): Reminder[] {
+export function pastDue(
+  reminders: Reminder[],
+  config: RemindersConfig,
+  now: number,
+): Reminder[] {
   return reminders
     .filter((reminder) => isOverdue(reminder, config, now))
     .sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt));

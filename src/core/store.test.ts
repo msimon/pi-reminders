@@ -55,7 +55,11 @@ async function tempFiles(): Promise<string[]> {
  * have hit the disk before the CAS verify re-reads, making the test racy.
  */
 function concurrentWrite(reminders: Reminder[]): void {
-  writeFileSync(stateFile(), `${JSON.stringify({ version: 1, reminders }, null, 2)}\n`, "utf-8");
+  writeFileSync(
+    stateFile(),
+    `${JSON.stringify({ version: 1, reminders }, null, 2)}\n`,
+    "utf-8",
+  );
 }
 
 describe("readState", () => {
@@ -85,7 +89,10 @@ describe("readState", () => {
       entries.some((name) => name.startsWith("reminders.corrupt-")),
       "unreadable data is preserved, not discarded",
     );
-    assert.ok(!entries.includes("reminders.json"), "bad file no longer in the way");
+    assert.ok(
+      !entries.includes("reminders.json"),
+      "bad file no longer in the way",
+    );
   });
 
   it("drops records missing the fields every projection needs", async () => {
@@ -104,7 +111,10 @@ describe("readState", () => {
       "utf-8",
     );
     const loaded = await readState();
-    assert.deepEqual(loaded.reminders.map((r) => r.id), ["ok1"]);
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id),
+      ["ok1"],
+    );
   });
 
   it("ignores garbage in optional fields rather than deriving from NaN", async () => {
@@ -113,7 +123,12 @@ describe("readState", () => {
       JSON.stringify({
         version: 1,
         reminders: [
-          { ...reminder({ id: "bad" }), firedAt: "whenever", snoozedUntil: 42, recurrence: "fortnight" },
+          {
+            ...reminder({ id: "bad" }),
+            firedAt: "whenever",
+            snoozedUntil: 42,
+            recurrence: "fortnight",
+          },
         ],
       }),
       "utf-8",
@@ -126,9 +141,16 @@ describe("readState", () => {
   });
 
   it("tolerates a bare array if the envelope is hand-edited away", async () => {
-    await writeFile(stateFile(), JSON.stringify([reminder({ id: "b2c" })]), "utf-8");
+    await writeFile(
+      stateFile(),
+      JSON.stringify([reminder({ id: "b2c" })]),
+      "utf-8",
+    );
     const loaded = await readState();
-    assert.deepEqual(loaded.reminders.map((r) => r.id), ["b2c"]);
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id),
+      ["b2c"],
+    );
   });
 });
 
@@ -168,7 +190,10 @@ describe("compare-and-swap", () => {
     }));
     assert.equal(added, "done");
     const loaded = await readState();
-    assert.deepEqual(loaded.reminders.map((r) => r.id), ["aaa", "bbb"]);
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id),
+      ["aaa", "bbb"],
+    );
   });
 
   it("skips the write entirely when nothing changed", async () => {
@@ -213,11 +238,21 @@ describe("compare-and-swap", () => {
       mutate((reminders) => {
         counter += 1;
         concurrentWrite([reminder({ id: `churn-${counter}` })]);
-        return { reminders: [...reminders, reminder({ id: "mine" })], result: null, changed: true };
+        return {
+          reminders: [...reminders, reminder({ id: "mine" })],
+          result: null,
+          changed: true,
+        };
       }),
       (error: unknown) => {
-        assert.ok(error instanceof CasError, `expected CasError, got ${String(error)}`);
-        assert.match((error as CasError).message, /giving up rather than dropping/);
+        assert.ok(
+          error instanceof CasError,
+          `expected CasError, got ${String(error)}`,
+        );
+        assert.match(
+          (error as CasError).message,
+          /giving up rather than dropping/,
+        );
         return true;
       },
     );
@@ -237,7 +272,10 @@ describe("compare-and-swap", () => {
       changed: true,
     }));
     const loaded = await readState();
-    assert.deepEqual(loaded.reminders.map((r) => r.id), ["aaa", "one", "two"]);
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id),
+      ["aaa", "one", "two"],
+    );
   });
 
   it("lands every mutation when they are issued concurrently in-process", async () => {
@@ -280,6 +318,9 @@ describe("compare-and-swap", () => {
     }));
 
     const loaded = await readState();
-    assert.deepEqual(loaded.reminders.map((r) => r.id), ["after"]);
+    assert.deepEqual(
+      loaded.reminders.map((r) => r.id),
+      ["after"],
+    );
   });
 });

@@ -8,7 +8,10 @@ import os from "node:os";
 import path from "node:path";
 
 function root(): string {
-  return process.env.PI_REMINDERS_DIR ?? path.join(os.homedir(), ".pi", "agent", "state", "reminders");
+  return (
+    process.env.PI_REMINDERS_DIR ??
+    path.join(os.homedir(), ".pi", "agent", "state", "reminders")
+  );
 }
 
 export function stateFile(): string {
