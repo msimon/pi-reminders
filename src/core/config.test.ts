@@ -14,7 +14,9 @@ let previousDir: string | undefined;
 
 beforeEach(async () => {
   previousDir = process.env.PI_REMINDERS_DIR;
-  process.env.PI_REMINDERS_DIR = await mkdtemp(join(tmpdir(), "pi-reminders-config-"));
+  process.env.PI_REMINDERS_DIR = await mkdtemp(
+    join(tmpdir(), "pi-reminders-config-"),
+  );
 });
 
 afterEach(() => {
@@ -57,7 +59,10 @@ describe("normalizeConfig", () => {
   });
 
   it("keeps valid keys when others are invalid", () => {
-    const config = normalizeConfig({ allDayFireHour: 6, statuslineStyle: "bogus" });
+    const config = normalizeConfig({
+      allDayFireHour: 6,
+      statuslineStyle: "bogus",
+    });
     assert.equal(config.allDayFireHour, 6);
     assert.equal(config.statuslineStyle, DEFAULT_CONFIG.statuslineStyle);
   });
@@ -65,12 +70,21 @@ describe("normalizeConfig", () => {
   it("accepts the boundary fire hours and rejects what is outside", () => {
     assert.equal(normalizeConfig({ allDayFireHour: 0 }).allDayFireHour, 0);
     assert.equal(normalizeConfig({ allDayFireHour: 23 }).allDayFireHour, 23);
-    assert.equal(normalizeConfig({ allDayFireHour: 24 }).allDayFireHour, DEFAULT_CONFIG.allDayFireHour);
-    assert.equal(normalizeConfig({ allDayFireHour: 9.5 }).allDayFireHour, DEFAULT_CONFIG.allDayFireHour);
+    assert.equal(
+      normalizeConfig({ allDayFireHour: 24 }).allDayFireHour,
+      DEFAULT_CONFIG.allDayFireHour,
+    );
+    assert.equal(
+      normalizeConfig({ allDayFireHour: 9.5 }).allDayFireHour,
+      DEFAULT_CONFIG.allDayFireHour,
+    );
   });
 
   it("allows an empty statusline prefix", () => {
-    assert.equal(normalizeConfig({ statuslinePrefix: "" }).statuslinePrefix, "");
+    assert.equal(
+      normalizeConfig({ statuslinePrefix: "" }).statuslinePrefix,
+      "",
+    );
   });
 });
 
@@ -89,7 +103,11 @@ describe("readConfig", () => {
   });
 
   it("reads a valid file", async () => {
-    await writeFile(configFile(), JSON.stringify({ allDayFireHour: 6, statuslineStyle: "compact" }), "utf-8");
+    await writeFile(
+      configFile(),
+      JSON.stringify({ allDayFireHour: 6, statuslineStyle: "compact" }),
+      "utf-8",
+    );
     const loaded = await readConfig();
     assert.equal(loaded.config.allDayFireHour, 6);
     assert.equal(loaded.config.statuslineStyle, "compact");

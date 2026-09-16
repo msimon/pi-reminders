@@ -9,7 +9,11 @@
 
 import { readFile } from "node:fs/promises";
 import { configFile } from "./paths.ts";
-import { DEFAULT_CONFIG, type RemindersConfig, type StatuslineStyle } from "./types.ts";
+import {
+  DEFAULT_CONFIG,
+  type RemindersConfig,
+  type StatuslineStyle,
+} from "./types.ts";
 
 export interface LoadedConfig {
   config: RemindersConfig;
@@ -21,7 +25,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function integerIn(value: unknown, min: number, max: number, fallback: number): number {
+function integerIn(
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
   if (typeof value !== "number" || !Number.isInteger(value)) return fallback;
   if (value < min || value > max) return fallback;
   return value;
@@ -31,15 +40,34 @@ const STATUSLINE_STYLES: readonly StatuslineStyle[] = ["words", "compact"];
 
 export function normalizeConfig(input: unknown): RemindersConfig {
   if (!isRecord(input)) return { ...DEFAULT_CONFIG };
-  const style = STATUSLINE_STYLES.find((candidate) => candidate === input.statuslineStyle);
+  const style = STATUSLINE_STYLES.find(
+    (candidate) => candidate === input.statuslineStyle,
+  );
   return {
-    allDayFireHour: integerIn(input.allDayFireHour, 0, 23, DEFAULT_CONFIG.allDayFireHour),
+    allDayFireHour: integerIn(
+      input.allDayFireHour,
+      0,
+      23,
+      DEFAULT_CONFIG.allDayFireHour,
+    ),
     statuslineStyle: style ?? DEFAULT_CONFIG.statuslineStyle,
     statuslinePrefix:
-      typeof input.statuslinePrefix === "string" ? input.statuslinePrefix : DEFAULT_CONFIG.statuslinePrefix,
+      typeof input.statuslinePrefix === "string"
+        ? input.statuslinePrefix
+        : DEFAULT_CONFIG.statuslinePrefix,
     // Floor of 5s: a tighter tick would re-read the state file pointlessly.
-    tickIntervalSeconds: integerIn(input.tickIntervalSeconds, 5, 3600, DEFAULT_CONFIG.tickIntervalSeconds),
-    startupReportLimit: integerIn(input.startupReportLimit, 1, 100, DEFAULT_CONFIG.startupReportLimit),
+    tickIntervalSeconds: integerIn(
+      input.tickIntervalSeconds,
+      5,
+      3600,
+      DEFAULT_CONFIG.tickIntervalSeconds,
+    ),
+    startupReportLimit: integerIn(
+      input.startupReportLimit,
+      1,
+      100,
+      DEFAULT_CONFIG.startupReportLimit,
+    ),
     desktopNotifications:
       typeof input.desktopNotifications === "boolean"
         ? input.desktopNotifications

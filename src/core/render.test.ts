@@ -9,9 +9,20 @@ import {
   renderStatusline,
   renderWidget,
 } from "./render.ts";
-import { DEFAULT_CONFIG, type Buckets, type Reminder, type RemindersConfig } from "./types.ts";
+import {
+  DEFAULT_CONFIG,
+  type Buckets,
+  type Reminder,
+  type RemindersConfig,
+} from "./types.ts";
 
-function local(year: number, month1: number, day: number, hour = 0, minute = 0): number {
+function local(
+  year: number,
+  month1: number,
+  day: number,
+  hour = 0,
+  minute = 0,
+): number {
   return new Date(year, month1 - 1, day, hour, minute).getTime();
 }
 
@@ -27,10 +38,19 @@ function reminder(id: string, message: string, dueAt: number): Reminder {
 }
 
 /** Buckets holding the requested counts; contents only matter where asserted. */
-function buckets(overdue: number, today: number, week: number, later = 0): Buckets {
+function buckets(
+  overdue: number,
+  today: number,
+  week: number,
+  later = 0,
+): Buckets {
   const fill = (count: number, prefix: string): Reminder[] =>
     Array.from({ length: count }, (_unused, index) =>
-      reminder(`${prefix}${index}`, `${prefix} item ${index}`, local(2026, 1, 15, 9, 0)),
+      reminder(
+        `${prefix}${index}`,
+        `${prefix} item ${index}`,
+        local(2026, 1, 15, 9, 0),
+      ),
     );
   return {
     overdue: fill(overdue, "o"),
@@ -41,7 +61,10 @@ function buckets(overdue: number, today: number, week: number, later = 0): Bucke
 }
 
 const WORDS: RemindersConfig = { ...DEFAULT_CONFIG, statuslineStyle: "words" };
-const COMPACT: RemindersConfig = { ...DEFAULT_CONFIG, statuslineStyle: "compact" };
+const COMPACT: RemindersConfig = {
+  ...DEFAULT_CONFIG,
+  statuslineStyle: "compact",
+};
 
 describe("renderStatusline — words", () => {
   it("hides the segment entirely when there is nothing at all", () => {
@@ -53,15 +76,24 @@ describe("renderStatusline — words", () => {
   });
 
   it("shows the warning glyph only when something is late", () => {
-    assert.equal(renderStatusline(buckets(2, 1, 0), WORDS), `${WARNING_GLYPH} 2 overdue · 1 today`);
+    assert.equal(
+      renderStatusline(buckets(2, 1, 0), WORDS),
+      `${WARNING_GLYPH} 2 overdue · 1 today`,
+    );
     // No icon in the normal case, so its presence is itself the signal.
-    assert.equal(renderStatusline(buckets(0, 1, 4), WORDS), "1 today · 4 this week");
+    assert.equal(
+      renderStatusline(buckets(0, 1, 4), WORDS),
+      "1 today · 4 this week",
+    );
   });
 
   it("omits empty buckets entirely rather than showing zeros", () => {
     assert.equal(renderStatusline(buckets(0, 0, 4), WORDS), "4 this week");
     assert.equal(renderStatusline(buckets(0, 3, 0), WORDS), "3 today");
-    assert.equal(renderStatusline(buckets(1, 0, 0), WORDS), `${WARNING_GLYPH} 1 overdue`);
+    assert.equal(
+      renderStatusline(buckets(1, 0, 0), WORDS),
+      `${WARNING_GLYPH} 1 overdue`,
+    );
   });
 
   it("renders all three buckets when all are populated", () => {
@@ -76,7 +108,10 @@ describe("renderStatusline — compact", () => {
   it("keeps all three positions including zeros", () => {
     // Positional notation only works if the positions are fixed.
     assert.equal(renderStatusline(buckets(0, 1, 4), COMPACT), "0/1/4");
-    assert.equal(renderStatusline(buckets(2, 1, 4), COMPACT), `${WARNING_GLYPH} 2/1/4`);
+    assert.equal(
+      renderStatusline(buckets(2, 1, 4), COMPACT),
+      `${WARNING_GLYPH} 2/1/4`,
+    );
   });
 
   it("is still hidden when everything is zero", () => {
@@ -86,16 +121,36 @@ describe("renderStatusline — compact", () => {
 
 describe("renderStatusline — prefix", () => {
   const cases: [string, RemindersConfig, Buckets, string][] = [
-    ["Reminders: 2/1/4", { ...COMPACT, statuslinePrefix: "Reminders:" }, buckets(0, 1, 4), "Reminders: 0/1/4"],
+    [
+      "Reminders: 2/1/4",
+      { ...COMPACT, statuslinePrefix: "Reminders:" },
+      buckets(0, 1, 4),
+      "Reminders: 0/1/4",
+    ],
     [
       "words with prefix",
       { ...WORDS, statuslinePrefix: "reminders:" },
       buckets(2, 1, 0),
       `${WARNING_GLYPH} reminders: 2 overdue · 1 today`,
     ],
-    ["compact with short prefix", { ...COMPACT, statuslinePrefix: "rem" }, buckets(2, 1, 4), `${WARNING_GLYPH} rem 2/1/4`],
-    ["empty prefix words", { ...WORDS, statuslinePrefix: "" }, buckets(2, 1, 0), `${WARNING_GLYPH} 2 overdue · 1 today`],
-    ["empty prefix compact", { ...COMPACT, statuslinePrefix: "" }, buckets(2, 1, 4), `${WARNING_GLYPH} 2/1/4`],
+    [
+      "compact with short prefix",
+      { ...COMPACT, statuslinePrefix: "rem" },
+      buckets(2, 1, 4),
+      `${WARNING_GLYPH} rem 2/1/4`,
+    ],
+    [
+      "empty prefix words",
+      { ...WORDS, statuslinePrefix: "" },
+      buckets(2, 1, 0),
+      `${WARNING_GLYPH} 2 overdue · 1 today`,
+    ],
+    [
+      "empty prefix compact",
+      { ...COMPACT, statuslinePrefix: "" },
+      buckets(2, 1, 4),
+      `${WARNING_GLYPH} 2/1/4`,
+    ],
   ];
 
   for (const [name, config, bucketSet, expected] of cases) {
@@ -105,7 +160,10 @@ describe("renderStatusline — prefix", () => {
   }
 
   it("omits an empty prefix along with its space", () => {
-    const rendered = renderStatusline(buckets(0, 1, 0), { ...WORDS, statuslinePrefix: "" });
+    const rendered = renderStatusline(buckets(0, 1, 0), {
+      ...WORDS,
+      statuslinePrefix: "",
+    });
     assert.equal(rendered, "1 today");
     assert.ok(!rendered?.startsWith(" "));
   });
@@ -124,7 +182,10 @@ describe("renderWidget", () => {
     ];
     const lines = renderWidget(set);
     assert.equal(lines?.length, 1, "one row, never a multi-line box");
-    assert.equal(lines?.[0], `${WARNING_GLYPH} 2 overdue · next: call the accountant`);
+    assert.equal(
+      lines?.[0],
+      `${WARNING_GLYPH} 2 overdue · next: call the accountant`,
+    );
   });
 
   it("truncates a long message so the line cannot wrap", () => {
@@ -167,7 +228,11 @@ describe("renderStartupReport", () => {
     const overdue = Array.from({ length: 4 }, (_unused, index) =>
       reminder(`r${index}`, `thing ${index}`, local(2026, 1, 10, 9, 0)),
     );
-    const lines = renderStartupReport(overdue, { ...DEFAULT_CONFIG, startupReportLimit: 2 }, now) as string[];
+    const lines = renderStartupReport(
+      overdue,
+      { ...DEFAULT_CONFIG, startupReportLimit: 2 },
+      now,
+    ) as string[];
     assert.equal(lines.length, 4);
     assert.equal(lines.at(-1), "  ...and 2 more — /reminders");
   });

@@ -5,7 +5,12 @@
 /** Recurrence units. Matches `--every <unit>` and the tool's `recurrence` field. */
 export type Recurrence = "day" | "week" | "month" | "year";
 
-export const RECURRENCE_UNITS: readonly Recurrence[] = ["day", "week", "month", "year"];
+export const RECURRENCE_UNITS: readonly Recurrence[] = [
+  "day",
+  "week",
+  "month",
+  "year",
+];
 
 export interface Reminder {
   /** Short hash, e.g. "a3f" — stable for the life of the record, shown in list output. */

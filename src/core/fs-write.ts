@@ -11,7 +11,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, open, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-export async function writeFileAtomically(targetPath: string, content: string): Promise<void> {
+export async function writeFileAtomically(
+  targetPath: string,
+  content: string,
+): Promise<void> {
   let existingStats: Awaited<ReturnType<typeof stat>> | null = null;
   try {
     existingStats = await stat(targetPath);

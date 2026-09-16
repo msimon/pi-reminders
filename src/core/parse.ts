@@ -10,8 +10,7 @@ import { daysInMonth, localNoon } from "./time.ts";
 import { RECURRENCE_UNITS, type Recurrence } from "./types.ts";
 
 export type ParseResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: string };
+  { ok: true; value: T } | { ok: false; error: string };
 
 export const ACCEPTED_WHEN_FORMATS =
   "absolute `YYYY-MM-DD` (all-day) or `YYYY-MM-DD HH:MM` (local, timed), a zoned instant such as `2026-01-20T09:00:00Z` or `2026-01-20T09:00:00+01:00`, or an offset `<N><m|h|d|w>` such as `45m`, `3h`, `2d`, `1w`";

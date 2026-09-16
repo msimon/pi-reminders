@@ -15,10 +15,18 @@ import type { Buckets, Reminder, RemindersConfig } from "./types.ts";
  */
 export const WARNING_GLYPH = "\u26a0\ufe0f";
 
-function withPrefix(config: RemindersConfig, overdue: boolean, body: string): string {
+function withPrefix(
+  config: RemindersConfig,
+  overdue: boolean,
+  body: string,
+): string {
   // Rendering is `[⚠️ if overdue] [prefix] [body]`, where an empty prefix is
   // omitted along with its space.
-  const parts = [overdue ? WARNING_GLYPH : "", config.statuslinePrefix.trim(), body];
+  const parts = [
+    overdue ? WARNING_GLYPH : "",
+    config.statuslinePrefix.trim(),
+    body,
+  ];
   return parts.filter((part) => part !== "").join(" ");
 }
 
@@ -28,7 +36,10 @@ function withPrefix(config: RemindersConfig, overdue: boolean, body: string): st
  * No icon in the normal case: the icon appears only when something is late, so
  * its presence is itself the signal rather than decoration you learn to skim.
  */
-export function renderStatusline(buckets: Buckets, config: RemindersConfig): string | undefined {
+export function renderStatusline(
+  buckets: Buckets,
+  config: RemindersConfig,
+): string | undefined {
   const overdue = buckets.overdue.length;
   const today = buckets.today.length;
   const week = buckets.week.length;
@@ -74,7 +85,11 @@ export function renderWidget(buckets: Buckets): string[] | undefined {
 }
 
 /** Grouped `overdue / today / upcoming` list body for `/reminders list`. */
-export function renderList(buckets: Buckets, config: RemindersConfig, now: number): string[] {
+export function renderList(
+  buckets: Buckets,
+  config: RemindersConfig,
+  now: number,
+): string[] {
   const lines: string[] = [];
   const section = (title: string, reminders: Reminder[]): void => {
     if (reminders.length === 0) return;
@@ -109,7 +124,9 @@ export function renderStartupReport(
   const shown = overdue.slice(0, config.startupReportLimit);
   const lines = [
     `${WARNING_GLYPH} ${overdue.length} reminder${overdue.length === 1 ? "" : "s"} past due:`,
-    ...shown.map((reminder) => `  ${formatReminderLine(reminder, config, now)}`),
+    ...shown.map(
+      (reminder) => `  ${formatReminderLine(reminder, config, now)}`,
+    ),
   ];
 
   const remaining = overdue.length - shown.length;
