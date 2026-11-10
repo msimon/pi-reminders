@@ -10,7 +10,7 @@ import type {
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 import { parseSnoozeArgs } from "./core/args.ts";
-import { formatDue, formatReminderLine } from "./core/format.ts";
+import { formatDue, formatPickerLine, formatTiming } from "./core/format.ts";
 import { parseSnoozeTarget } from "./core/parse.ts";
 import { renderList } from "./core/render.ts";
 import { formatLocalDateTime } from "./core/time.ts";
@@ -242,52 +242,74 @@ const SNOOZE_CHOICES: [string, string][] = [
   ["Snooze 1 week", "1w"],
 ];
 
+/** Room for one picker row: the terminal width minus the selector's padding and arrow. */
+function pickerWidth(): number {
+  return Math.max(40, (process.stdout.columns ?? 100) - 6);
+}
+
 /**
  * The interactive picker: choose a reminder, then choose what to do with it.
  *
- * The select labels double as the grouped list, so there is no separate
- * rendering to keep in sync.
+ * Rows are one line each, time first (see formatPickerLine); the action menu
+ * shows the full reminder. Escape from the action menu, or a declined delete,
+ * goes back to the list; escape from the list closes the picker.
  */
 async function openPicker(
   ctx: ExtensionCommandContext,
   runtime: RemindersRuntime,
 ): Promise<void> {
-  const now = Date.now();
-  const { buckets } = await runtime.snapshot(now);
-  const ordered = [
-    ...buckets.overdue,
-    ...buckets.today,
-    ...buckets.week,
-    ...buckets.later,
-  ];
+  for (;;) {
+    const now = Date.now();
+    const { buckets } = await runtime.snapshot(now);
+    const ordered = [
+      ...buckets.overdue,
+      ...buckets.today,
+      ...buckets.week,
+      ...buckets.later,
+    ];
 
-  if (ordered.length === 0) {
-    ctx.ui.notify(
-      "No active reminders. Add one with /remind <when> <message>.",
-      "info",
+    if (ordered.length === 0) {
+      ctx.ui.notify("No active reminders.", "info");
+      return;
+    }
+
+    const timingWidth = Math.max(
+      ...ordered.map((r) => formatTiming(r, runtime.config, now).length),
     );
-    return;
+    const width = pickerWidth();
+    const labels = ordered.map((reminder) =>
+      formatPickerLine(reminder, runtime.config, now, width, timingWidth),
+    );
+    const choice = await ctx.ui.select("Reminders:", labels);
+    if (choice === undefined) return;
+
+    const reminder = ordered[labels.indexOf(choice)];
+    if (reminder === undefined) return;
+    if (await openActions(ctx, runtime, reminder, now)) return;
   }
+}
 
-  const labels = ordered.map((reminder) =>
-    formatReminderLine(reminder, runtime.config, now),
-  );
-  const choice = await ctx.ui.select("Reminders:", labels);
-  if (choice === undefined) return;
-
-  const reminder = ordered[labels.indexOf(choice)];
-  if (reminder === undefined) return;
-
+/** Act on one reminder. Returns false to go back to the list. */
+async function openActions(
+  ctx: ExtensionCommandContext,
+  runtime: RemindersRuntime,
+  reminder: Reminder,
+  now: number,
+): Promise<boolean> {
   const CLEAR = "Clear (mark done)";
   const DELETE = "Delete permanently";
   const actions = [CLEAR, ...SNOOZE_CHOICES.map(([label]) => label), DELETE];
 
-  const action = await ctx.ui.select(`"${reminder.message}"`, actions);
-  if (action === undefined) return;
+  const recurring =
+    reminder.recurrence === undefined ? "" : ` · every ${reminder.recurrence}`;
+  // The full reminder, wrapped: the list row was cut to one line.
+  const title = `${reminder.id} · ${formatTiming(reminder, runtime.config, now)}${recurring}\n\n${reminder.message}`;
+  const action = await ctx.ui.select(title, actions);
+  if (action === undefined) return false;
 
   if (action === CLEAR) {
     await runClear(ctx, runtime, reminder.id);
-    return;
+    return true;
   }
 
   if (action === DELETE) {
@@ -295,18 +317,19 @@ async function openPicker(
       "Delete reminder?",
       `Permanently delete "${reminder.message}"?`,
     );
-    if (!confirmed) return;
+    if (!confirmed) return false;
     await deleteById(ctx, runtime, reminder.id);
-    return;
+    return true;
   }
 
   const snooze = SNOOZE_CHOICES.find(([label]) => label === action);
-  if (snooze === undefined) return;
+  if (snooze === undefined) return false;
   const target = parseSnoozeTarget(
     snooze[1],
-    now,
+    Date.now(),
     runtime.config.allDayFireHour,
   );
-  if (!target.ok) return;
+  if (!target.ok) return true;
   await applySnoozeById(ctx, runtime, reminder.id, target.value);
+  return true;
 }

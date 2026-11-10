@@ -85,34 +85,70 @@ export function truncate(text: string, max: number): string {
   return `${chars.slice(0, Math.max(1, max - 1)).join("")}…`;
 }
 
+function isLate(
+  reminder: Reminder,
+  config: RemindersConfig,
+  now: number,
+): boolean {
+  return (
+    now >= overdueAt(reminder, config) && reminder.snoozedUntil === undefined
+  );
+}
+
 /**
- * One-line list entry: `a3f  ⚠️ call the accountant   Jan 12 (2d overdue)`.
- * Snoozed records show their snooze target rather than their original time,
- * because that is when they will actually come back.
+ * When a reminder fires, e.g. `Jan 12 (2d overdue)`, `Nov 11 11:00 (in 23h)`,
+ * or `snoozed in 3h`. Snoozed records show their snooze target rather than
+ * their original time, because that is when they will actually come back.
  */
+export function formatTiming(
+  reminder: Reminder,
+  config: RemindersConfig,
+  now: number,
+): string {
+  const snoozed =
+    reminder.snoozedUntil !== undefined &&
+    Date.parse(reminder.snoozedUntil) > now;
+  if (snoozed) {
+    return `snoozed ${formatRelative(effectiveAt(reminder, config, now), now)}`;
+  }
+  const reference = isLate(reminder, config, now)
+    ? overdueAt(reminder, config)
+    : fireAt(reminder, config);
+  return `${formatDue(reminder, now)} (${formatRelative(reference, now)})`;
+}
+
+/** One-line list entry: `a3f  ⚠️ call the accountant   Jan 12 (2d overdue)`. */
 export function formatReminderLine(
   reminder: Reminder,
   config: RemindersConfig,
   now: number,
 ): string {
-  const late =
-    now >= overdueAt(reminder, config) && reminder.snoozedUntil === undefined;
-  const marker = late ? "⚠️ " : "";
+  const marker = isLate(reminder, config, now) ? "⚠️ " : "";
   const recurring =
     reminder.recurrence === undefined ? "" : ` (every ${reminder.recurrence})`;
+  return `${reminder.id}  ${marker}${reminder.message}${recurring} — ${formatTiming(reminder, config, now)}`;
+}
 
-  const snoozed =
-    reminder.snoozedUntil !== undefined &&
-    Date.parse(reminder.snoozedUntil) > now;
-  let timing: string;
-  if (snoozed) {
-    timing = `snoozed ${formatRelative(effectiveAt(reminder, config, now), now)}`;
-  } else {
-    const reference = late
-      ? overdueAt(reminder, config)
-      : fireAt(reminder, config);
-    timing = `${formatDue(reminder, now)} (${formatRelative(reference, now)})`;
-  }
-
-  return `${reminder.id}  ${marker}${reminder.message}${recurring} — ${timing}`;
+/**
+ * Picker row, time first and never wrapping:
+ * `Nov 11 11:00 (in 23h)  cfa  pi-cron-jobs review inbox: check last…`.
+ * `timingWidth` pads the time so the ids line up; the message is collapsed to
+ * one line and the whole row cut to `width` characters. The full text is shown
+ * once the reminder is picked.
+ */
+export function formatPickerLine(
+  reminder: Reminder,
+  config: RemindersConfig,
+  now: number,
+  width: number,
+  timingWidth = 0,
+): string {
+  const timing = formatTiming(reminder, config, now).padEnd(timingWidth);
+  const marker = isLate(reminder, config, now) ? "⚠️ " : "";
+  const recurring = reminder.recurrence === undefined ? "" : "↻ ";
+  const message = reminder.message.replace(/\s+/g, " ").trim();
+  return truncate(
+    `${timing}  ${reminder.id}  ${marker}${recurring}${message}`,
+    width,
+  );
 }
